@@ -25,3 +25,4 @@ pnpm-debug.log*
 .astro
 
 package-lock.json
+pnpm-lock.yaml
