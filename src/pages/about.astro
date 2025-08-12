@@ -2,7 +2,7 @@
 import PageLayout from "@/layouts/Base.astro";
 
 const meta = {
-	description: "I'm a starter theme for Astro.build",
+  description: "关于",
 	title: "About",
 };
 ---
@@ -10,27 +10,50 @@ const meta = {
 <PageLayout meta={meta}>
 	<h1 class="title mb-12">About</h1>
 	<div class="prose prose-sm prose-cactus max-w-none">
-		<p>
-			Hi, I’m a starter Astro. I’m particularly great for getting you started with your own blogging
-			website.
-		</p>
-		<p>Here are my some of my awesome built in features:</p>
+	<h1 class="title mb-6">About</h1>
+	<div class="prose prose-sm prose-cactus max-w-none">
+		<p>Hi, 我是一名软件开发工程师。建设这个博客的目的是为了记录和思考。</p>
+		<h4>Moatkon's:</h4>
 		<ul class="list-inside list-disc" role="list">
-			<li>I'm ultra fast as I'm a static site</li>
-			<li>I'm fully responsive</li>
-			<li>I come with a light and dark mode</li>
-			<li>I'm easy to customise and add additional content</li>
-			<li>I have Tailwind CSS styling</li>
-			<li>Shiki code syntax highlighting</li>
-			<li>Satori for auto generating OG images for blog posts</li>
+			<li>
+				博客开源: <a
+					class="cactus-link inline-block"
+					href="https://github.com/moatkon/blog"
+					rel="noreferrer"
+					target="_blank">Github</a
+				>
+			</li>
+			<li>
+				如果您想了解我的职业生涯,可以直接访问我的 <a
+					class="cactus-link inline-block"
+					href="https://resume.moatkon.com"
+					rel="noreferrer"
+					target="_blank">简历</a
+				>
+			</li>
+			<li>
+				如果您想了解平时我都干些什么,可以访问 <a
+					class="cactus-link inline-block"
+					href="https://moatkon.com"
+					rel="noreferrer"
+					target="_blank">moatkon</a
+				>
+			</li>
 		</ul>
+		<h4>Likes:</h4>
+		<ul class="list-inside list-disc" role="list">
+			<li>音乐</li>
+			<li>电影</li>
+			<li>英语</li>
+		</ul>
+		<h4>Thanks:</h4>
 		<p>
-			Clone or fork my <a
+			本网站基于<a
 				class="cactus-link inline-block"
 				href="https://github.com/chrismwilliams/astro-cactus"
 				rel="noreferrer"
-				target="_blank">repo</a
-			> if you like me!
+				target="_blank">Astro Cactus</a
+			>构建
 		</p>
 	</div>
 </PageLayout>
