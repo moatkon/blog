@@ -8,7 +8,7 @@ export default {
 				DEFAULT: {
 					css: {
 						a: {
-							textUnderlineOffset: "2px",
+							textUnderlineOffset: "3px",
 							"&:hover": {
 								"@media (hover: hover)": {
 									textDecorationColor: "var(--color-link)",
