@@ -11,10 +11,7 @@ const { articleDate, description, ogImage, title } = Astro.props;
 const titleSeparator = "•";
 const siteTitle = `${title} ${titleSeparator} ${siteConfig.title}`;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
-const socialImageURL = new URL(
-	ogImage ? ogImage : "/social-card.png",
-	Astro.url,
-).href;
+const socialImageURL = new URL(ogImage ? ogImage : "/social-card.png", Astro.url).href;
 ---
 
 <meta charset="utf-8" />
@@ -22,7 +19,7 @@ const socialImageURL = new URL(
 <title>{siteTitle}</title>
 
 {/* Icons */}
-<link href="/favicon.ico" rel="icon" type="image/x-icon" />
+<link href="/icon.svg" rel="icon" type="image/svg+xml" />
 {
 	import.meta.env.PROD && (
 		<>
@@ -74,21 +71,14 @@ const socialImageURL = new URL(
 
 {/* RSS auto-discovery */}
 <link href="/rss.xml" title="Blog" rel="alternate" type="application/rss+xml" />
-<link
-	href="/notes/rss.xml"
-	title="Notes"
-	rel="alternate"
-	type="application/rss+xml"
-/>
+<link href="/notes/rss.xml" title="Notes" rel="alternate" type="application/rss+xml" />
 
 {/* Webmentions */}
 {
 	WEBMENTION_URL && (
 		<>
 			<link href={WEBMENTION_URL} rel="webmention" />
-			{WEBMENTION_PINGBACK && (
-				<link href={WEBMENTION_PINGBACK} rel="pingback" />
-			)}
+			{WEBMENTION_PINGBACK && <link href={WEBMENTION_PINGBACK} rel="pingback" />}
 		</>
 	)
 }
