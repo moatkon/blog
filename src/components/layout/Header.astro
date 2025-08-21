@@ -2,17 +2,20 @@
 import Search from "@/components/Search.astro";
 import ThemeToggle from "@/components/ThemeToggle.astro";
 import { menuLinks } from "@/site.config";
-import {siteConfig} from "../../site.config";
+import { siteConfig } from "../../site.config";
 ---
 
-<header class="group relative mb-28 flex items-center sm:ps-18" id="main-header">
+<header
+	class="group relative mb-28 flex items-center sm:ps-18"
+	id="main-header"
+>
 	<div class="flex sm:flex-col">
 		<a
 			aria-current={Astro.url.pathname === "/" ? "page" : false}
 			class="inline-flex items-center grayscale hover:filter-none sm:relative sm:inline-block"
 			href="/"
 		>
-			<svg
+			<!-- <svg
 				aria-hidden="true"
 				class="me-3 h-10 w-6 sm:absolute sm:-start-18 sm:me-0 sm:h-20 sm:w-12"
 				fill="none"
@@ -31,8 +34,13 @@ import {siteConfig} from "../../site.config";
 					d="m136 53.333 45.333-26.666v120L226.667 120V80L272 53.333V160l-90.667 53.333v240L136 480V306.667L45.334 360V240l45.333-26.667v53.334L136 240V53.333Z"
 					fill="#53C68C"></path>
 				<path d="M45.334 240 0 213.334v120L45.334 360V240Z" fill="#B04304"></path>
-			</svg>
-			<span class="text-xl font-bold sm:text-2xl">{siteConfig.title}</span>
+			</svg> -->
+			<img
+				src="/moatkon-icon.png"
+				class="me-3 h-15 w-15 sm:absolute sm:-start-18 sm:me-0 sm:h-15 sm:w-15"
+			/>
+			<span class="text-xl font-bold sm:text-2xl">{siteConfig.title}</span
+			>
 		</a>
 		<nav
 			aria-label="Main menu"
@@ -42,7 +50,9 @@ import {siteConfig} from "../../site.config";
 			{
 				menuLinks.map((link) => (
 					<a
-						aria-current={Astro.url.pathname === link.path ? "page" : false}
+						aria-current={
+							Astro.url.pathname === link.path ? "page" : false
+						}
 						class="px-4 py-4 underline-offset-2 hover:underline sm:py-0"
 						href={link.path}
 					>
@@ -74,8 +84,10 @@ import {siteConfig} from "../../site.config";
 				viewBox="0 0 24 24"
 				xmlns="http://www.w3.org/2000/svg"
 			>
-				<path d="M3.75 9h16.5m-16.5 6.75h16.5" stroke-linecap="round" stroke-linejoin="round"
-				></path>
+				<path
+					d="M3.75 9h16.5m-16.5 6.75h16.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"></path>
 			</svg>
 			<svg
 				aria-hidden="true"
@@ -89,7 +101,10 @@ import {siteConfig} from "../../site.config";
 				viewBox="0 0 24 24"
 				xmlns="http://www.w3.org/2000/svg"
 			>
-				<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
+				<path
+					d="M6 18L18 6M6 6l12 12"
+					stroke-linecap="round"
+					stroke-linejoin="round"></path>
 			</svg>
 		</button>
 	</mobile-button>
@@ -103,12 +118,16 @@ import {siteConfig} from "../../site.config";
 
 		connectedCallback() {
 			const headerEl = document.getElementById("main-header")!;
-			const mobileButtonEl = this.querySelector<HTMLButtonElement>("button");
+			const mobileButtonEl =
+				this.querySelector<HTMLButtonElement>("button");
 
 			mobileButtonEl?.addEventListener("click", () => {
 				if (headerEl) toggleClass(headerEl, "menu-open");
 				this.#menuOpen = !this.#menuOpen;
-				mobileButtonEl.setAttribute("aria-expanded", this.#menuOpen.toString());
+				mobileButtonEl.setAttribute(
+					"aria-expanded",
+					this.#menuOpen.toString(),
+				);
 			});
 		}
 	}
