@@ -1,0 +1,64 @@
+/* Giscus 评论系统样式 */
+
+/* 基础容器样式 */
+.giscus-container {
+  min-height: 200px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* 响应式设计 */
+@media (max-width: 640px) {
+  .giscus-container {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+}
+
+/* Giscus iframe 样式 */
+.giscus-container iframe.giscus-frame {
+  border-radius: 6px;
+  width: 100% !important;
+  min-height: 150px;
+  color-scheme: light dark;
+}
+
+/* 强制主题适配 - 通过 CSS 变量 */
+.giscus-container .giscus {
+  /* 浅色模式变量 */
+  --color-primary: var(--color-accent);
+  --color-text: var(--color-global-text);
+  --color-bg: var(--color-global-bg);
+  --color-link: var(--color-link);
+
+  /* Giscus 特定变量 - 浅色模式 */
+  --gsc-color-text-primary: var(--color-global-text);
+  --gsc-color-text-secondary: oklch(from var(--color-global-text) calc(l * 0.7) c h);
+  --gsc-color-text-link: var(--color-link);
+  --gsc-color-bg-primary: var(--color-global-bg);
+  --gsc-color-bg-secondary: oklch(from var(--color-global-bg) calc(l * 0.98) c h);
+  --gsc-color-border-primary: oklch(from var(--color-global-text) l c h / 0.15);
+  --gsc-color-border-secondary: oklch(from var(--color-global-text) l c h / 0.1);
+  --gsc-color-accent: var(--color-accent);
+}
+
+/* 深色模式强制覆盖 */
+[data-theme="dark"] .giscus-container .giscus {
+  --gsc-color-text-primary: var(--color-global-text);
+  --gsc-color-text-secondary: oklch(from var(--color-global-text) calc(l * 0.8) c h);
+  --gsc-color-text-link: var(--color-link);
+  --gsc-color-bg-primary: var(--color-global-bg);
+  --gsc-color-bg-secondary: oklch(from var(--color-global-bg) calc(l * 1.1) c h);
+  --gsc-color-border-primary: oklch(from var(--color-global-text) l c h / 0.2);
+  --gsc-color-border-secondary: oklch(from var(--color-global-text) l c h / 0.15);
+  --gsc-color-accent: var(--color-accent);
+}
+
+/* 减少动画效果（尊重用户偏好） */
+@media (prefers-reduced-motion: reduce) {
+  .giscus-container {
+    transition: none !important;
+  }
+}
