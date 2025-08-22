@@ -1,0 +1,145 @@
+---
+// Giscus 评论组件
+// 基于 GitHub Discussions 的评论系统
+
+interface Props {
+	repo: string;
+	repoId: string;
+	category: string;
+	categoryId: string;
+	mapping?: string;
+	strict?: string;
+	reactionsEnabled?: string;
+	emitMetadata?: string;
+	inputPosition?: string;
+	theme?: string;
+	lang?: string;
+	loading?: string;
+}
+
+const {
+	repo,
+	repoId,
+	category,
+	categoryId,
+	mapping = "pathname",
+	strict = "0",
+	reactionsEnabled = "1",
+	emitMetadata = "0",
+	inputPosition = "bottom",
+	theme = "preferred_color_scheme",
+	lang = "zh-CN",
+	loading = "lazy",
+} = Astro.props;
+---
+
+<div class="giscus-container mt-16">
+	<hr class="border-solid mb-8" />
+	<h2 class="title mb-6 text-xl before:hidden">评论</h2>
+
+	<script
+		src="https://giscus.app/client.js"
+		data-repo={repo}
+		data-repo-id={repoId}
+		data-category={category}
+		data-category-id={categoryId}
+		data-mapping={mapping}
+		data-strict={strict}
+		data-reactions-enabled={reactionsEnabled}
+		data-emit-metadata={emitMetadata}
+		data-input-position={inputPosition}
+		data-theme={theme}
+		data-lang={lang}
+		data-loading={loading}
+		crossorigin="anonymous"
+		async></script>
+</div>
+
+<script>
+	// 主题同步功能
+	function updateGiscusTheme() {
+		const iframe = document.querySelector<HTMLIFrameElement>(
+			"iframe.giscus-frame",
+		);
+		if (!iframe) return;
+
+		const theme = document.documentElement.getAttribute("data-theme");
+		const giscusTheme = theme === "dark" ? "dark" : "light";
+
+		iframe.contentWindow?.postMessage(
+			{ giscus: { setConfig: { theme: giscusTheme } } },
+			"https://giscus.app",
+		);
+	}
+
+	// 监听博客主题变化事件（与 ThemeToggle.astro 同步）
+	document.addEventListener("theme-change", () => {
+		// 延迟执行，确保 DOM 更新完成
+		setTimeout(updateGiscusTheme, 100);
+	});
+
+	// 监听 Astro 页面切换事件
+	document.addEventListener("astro:after-swap", () => {
+		// 页面切换后重新同步主题
+		setTimeout(updateGiscusTheme, 500);
+	});
+
+	// 页面加载完成后初始化主题
+	document.addEventListener("DOMContentLoaded", () => {
+		// 等待 Giscus iframe 加载
+		setTimeout(updateGiscusTheme, 1000);
+	});
+
+	// 监听 Giscus 加载完成事件
+	window.addEventListener("message", (event) => {
+		if (event.origin !== "https://giscus.app") return;
+		if (event.data.giscus?.discussion) {
+			// Giscus 已加载，同步主题
+			updateGiscusTheme();
+		}
+	});
+
+	// 备用方案：监听 data-theme 属性变化
+	const observer = new MutationObserver((mutations) => {
+		mutations.forEach((mutation) => {
+			if (
+				mutation.type === "attributes" &&
+				mutation.attributeName === "data-theme"
+			) {
+				setTimeout(updateGiscusTheme, 100);
+			}
+		});
+	});
+
+	observer.observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: ["data-theme"],
+	});
+</script>
+
+<style>
+	.giscus-container {
+		/* 确保评论区域有足够的空间 */
+		min-height: 200px;
+	}
+
+	/* 响应式设计 */
+	@media (max-width: 640px) {
+		.giscus-container {
+			margin-left: -1rem;
+			margin-right: -1rem;
+			padding-left: 1rem;
+			padding-right: 1rem;
+		}
+	}
+
+	/* 深色模式下的样式调整 */
+	[data-theme="dark"] .giscus-container {
+		/* 可以添加深色模式特定的样式 */
+	}
+
+	/* 浅色模式下的样式调整 */
+	[data-theme="light"] .giscus-container {
+		/* 可以添加浅色模式特定的样式 */
+	}
+</style>

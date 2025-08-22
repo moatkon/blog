@@ -1,4 +1,4 @@
-import type { SiteConfig } from "@/types";
+import type { SiteConfig, GiscusConfig } from "@/types";
 import type { AstroExpressiveCodeOptions } from "astro-expressive-code";
 
 export const siteConfig: SiteConfig = {
@@ -86,4 +86,36 @@ export const expressiveCodeOptions: AstroExpressiveCodeOptions = {
 	// One dark, one light theme => https://expressive-code.com/guides/themes/#available-themes
 	themes: ["dracula", "github-light"],
 	useThemedScrollbars: false,
+};
+
+// Giscus 评论系统配置
+// 使用前需要：
+// 1. 在 GitHub 仓库中启用 Discussions
+// 2. 安装 Giscus GitHub App: https://github.com/apps/giscus
+// 3. 在 https://giscus.app/zh-CN 获取配置参数
+export const giscusConfig: GiscusConfig = {
+	// GitHub 仓库信息 (格式: "用户名/仓库名")
+	repo: "moatkon/blog",
+	// 仓库 ID (在 giscus.app 获取)
+	repoId: "R_kgDOPcurMQ",
+	// 讨论分类名称
+	category: "Announcements",
+	// 讨论分类 ID (在 giscus.app 获取)
+	categoryId: "DIC_kwDOPcurMc4Cue14",
+	// 页面 ↔️ discussion 映射关系
+	mapping: "pathname",
+	// 是否启用严格标题匹配
+	strict: "0",
+	// 是否启用反应
+	reactionsEnabled: "1",
+	// 是否发送讨论元数据
+	emitMetadata: "0",
+	// 输入框位置
+	inputPosition: "bottom",
+	// 主题 (会被 JavaScript 动态覆盖以同步博客主题)
+	theme: "preferred_color_scheme",
+	// 语言
+	lang: "zh-CN",
+	// 加载方式
+	loading: "lazy"
 };

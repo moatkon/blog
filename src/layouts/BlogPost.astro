@@ -5,7 +5,9 @@ import Masthead from "@/components/blog/Masthead.astro";
 import TOC from "@/components/blog/TOC.astro";
 import RelatedPosts from "@/components/blog/RelatedPosts.astro";
 import WebMentions from "@/components/blog/webmentions/index.astro";
+import Giscus from "@/components/blog/Giscus.astro";
 import ReadingProgress from "@/components/ReadingProgress.astro";
+import { giscusConfig } from "@/site.config";
 
 import BaseLayout from "./Base.astro";
 
@@ -42,6 +44,7 @@ const readingTime: string = remarkPluginFrontmatter.readingTime;
 				<slot />
 				<RelatedPosts currentPost={post} />
 				<WebMentions />
+				<Giscus {...giscusConfig} />
 			</div>
 		</div>
 	</article>
