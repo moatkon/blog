@@ -103,7 +103,7 @@ export const giscusConfig: GiscusConfig = {
 	// 讨论分类 ID (在 giscus.app 获取)
 	categoryId: "DIC_kwDOPcurMc4Cue14",
 	// 页面 ↔️ discussion 映射关系
-	mapping: "pathname",
+	mapping: "url",
 	// 是否启用严格标题匹配
 	strict: "0",
 	// 是否启用反应
