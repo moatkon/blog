@@ -36,7 +36,9 @@ const {
 import "@/styles/giscus.css";
 ---
 
-<div class="mt-16">
+<section class="mt-16">
+	<hr class="border-dashed mb-8" />
+	<h6 class="title mb-6 text-xl before:hidden">评论</h6>
 	<script
 		id="giscus-script"
 		src="https://giscus.app/client.js"
@@ -54,7 +56,7 @@ import "@/styles/giscus.css";
 		data-loading={loading}
 		crossorigin="anonymous"
 		async></script>
-</div>
+</section>
 
 <script is:inline>
 	// 在 Giscus 脚本加载之前就设置正确的主题
