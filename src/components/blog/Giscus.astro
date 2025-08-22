@@ -48,7 +48,7 @@ const {
 		data-reactions-enabled={reactionsEnabled}
 		data-emit-metadata={emitMetadata}
 		data-input-position={inputPosition}
-		data-theme={theme}
+		data-theme="light"
 		data-lang={lang}
 		data-loading={loading}
 		crossorigin="anonymous"
@@ -56,6 +56,330 @@ const {
 </div>
 
 <script>
+	// 获取网站主题色配置
+	function getWebsiteThemeColors() {
+		const root = document.documentElement;
+		const isDark = root.getAttribute("data-theme") === "dark";
+
+		// 获取 CSS 变量值
+		const computedStyle = getComputedStyle(root);
+
+		return {
+			// 主要颜色
+			bg: computedStyle.getPropertyValue("--color-global-bg").trim(),
+			text: computedStyle.getPropertyValue("--color-global-text").trim(),
+			accent: computedStyle.getPropertyValue("--color-accent").trim(),
+			accent2: computedStyle.getPropertyValue("--color-accent-2").trim(),
+			link: computedStyle.getPropertyValue("--color-link").trim(),
+			quote: computedStyle.getPropertyValue("--color-quote").trim(),
+			isDark,
+		};
+	}
+
+	// 创建自定义 Giscus 主题样式注入
+	function injectCustomStyles() {
+		// 等待 iframe 加载完成后注入样式
+		const iframe = document.querySelector<HTMLIFrameElement>(
+			"iframe.giscus-frame",
+		);
+		if (!iframe) {
+			// 如果 iframe 还没有加载，延迟重试
+			setTimeout(injectCustomStyles, 500);
+			return;
+		}
+
+		// 监听 iframe 加载完成
+		const applyStyles = () => {
+			try {
+				const iframeDoc =
+					iframe.contentDocument || iframe.contentWindow?.document;
+				if (!iframeDoc) return;
+
+				// 创建样式元素
+				const style = iframeDoc.createElement("style");
+				style.id = "custom-giscus-theme";
+
+				const colors = getWebsiteThemeColors();
+
+				// 自定义 CSS 样式，使用网站的颜色变量
+				style.textContent = `
+					/* 强制覆盖 Giscus 主题 - 根据当前模式 */
+					${
+						colors.isDark
+							? `
+					/* 深色模式样式 */
+					.gsc-main {
+						background-color: ${colors.bg} !important;
+						color: ${colors.text} !important;
+					}
+					`
+							: `
+					/* 浅色模式样式 - 强制白色背景和深色文字 */
+					.gsc-main {
+						background-color: #ffffff !important;
+						color: #1a1a1a !important;
+					}
+
+					/* 强制所有容器为白色背景 */
+					.gsc-main, .gsc-main > div, .gsc-timeline, .gsc-comment-box {
+						background-color: #ffffff !important;
+						background: #ffffff !important;
+					}
+					`
+					}
+
+					/* 字体设置 */
+					.gsc-main {
+						font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+					}
+
+					/* 强制所有文本元素颜色 */
+					${
+						colors.isDark
+							? `
+					.gsc-main *, .gsc-comment *, .gsc-comment-content *,
+					.gsc-comment-header *, .gsc-timeline * {
+						color: #e5e5e5 !important;
+					}
+					`
+							: `
+					.gsc-main *, .gsc-comment *, .gsc-comment-content *,
+					.gsc-comment-header *, .gsc-timeline * {
+						color: #1a1a1a !important;
+					}
+					`
+					}
+
+					/* 评论框样式 - 根据模式调整 */
+					${
+						colors.isDark
+							? `
+					.gsc-comment-box {
+						border: 1px solid #444444 !important;
+						border-radius: 8px !important;
+						background: ${colors.bg} !important;
+					}
+
+					.gsc-comment-box-textarea {
+						background: ${colors.bg} !important;
+						color: #e5e5e5 !important;
+						border: 1px solid #444444 !important;
+						font-family: inherit !important;
+					}
+					`
+							: `
+					.gsc-comment-box {
+						border: 1px solid #d1d5db !important;
+						border-radius: 8px !important;
+						background: #ffffff !important;
+					}
+
+					.gsc-comment-box-textarea {
+						background: #ffffff !important;
+						color: #1a1a1a !important;
+						border: 1px solid #d1d5db !important;
+						font-family: inherit !important;
+					}
+					`
+					}
+
+					.gsc-comment-box-textarea:focus {
+						border-color: ${colors.accent} !important;
+						box-shadow: 0 0 0 2px oklch(from ${colors.accent} l c h / 0.2) !important;
+					}
+
+					/* 按钮样式 */
+					.gsc-comment-box-button {
+						background: ${colors.accent} !important;
+						color: white !important;
+						border: none !important;
+						border-radius: 6px !important;
+						font-weight: 500 !important;
+					}
+
+					.gsc-comment-box-button:hover:not(:disabled) {
+						background: oklch(from ${colors.accent} calc(l * 0.9) c h) !important;
+					}
+
+					/* 评论样式 - 根据模式调整 */
+					${
+						colors.isDark
+							? `
+					.gsc-comment {
+						border: 1px solid #444444 !important;
+						border-radius: 8px !important;
+						background: #2a2a2a !important;
+					}
+
+					.gsc-comment-author {
+						color: ${colors.accent2} !important;
+						font-weight: 600 !important;
+					}
+
+					.gsc-comment-content {
+						color: #e5e5e5 !important;
+					}
+					`
+							: `
+					.gsc-comment {
+						border: 1px solid #e5e7eb !important;
+						border-radius: 8px !important;
+						background: #f9fafb !important;
+					}
+
+					.gsc-comment-author {
+						color: ${colors.accent} !important;
+						font-weight: 600 !important;
+					}
+
+					.gsc-comment-content {
+						color: #1a1a1a !important;
+					}
+					`
+					}
+
+					.gsc-comment-content a {
+						color: ${colors.link} !important;
+						text-decoration: underline !important;
+						text-underline-offset: 3px !important;
+					}
+
+					.gsc-comment-content a:hover {
+						text-decoration-thickness: 2px !important;
+					}
+
+					.gsc-comment-content blockquote {
+						color: ${colors.quote} !important;
+						border-left: 3px solid ${colors.accent} !important;
+						background: oklch(from ${colors.bg} l c h / 0.3) !important;
+					}
+
+					/* 反应按钮样式 */
+					.gsc-reactions-button {
+						background: ${colors.bg} !important;
+						border: 1px solid oklch(from ${colors.text} l c h / 0.1) !important;
+						color: ${colors.text} !important;
+						border-radius: 6px !important;
+					}
+
+					.gsc-reactions-button:hover {
+						background: oklch(from ${colors.accent} l c h / 0.1) !important;
+						border-color: ${colors.accent} !important;
+					}
+
+					/* 回复按钮 */
+					.gsc-reply-button {
+						color: ${colors.accent} !important;
+					}
+
+					.gsc-reply-button:hover {
+						color: oklch(from ${colors.accent} calc(l * 0.8) c h) !important;
+					}
+
+					/* 时间线样式 */
+					.gsc-timeline {
+						border-color: oklch(from ${colors.text} l c h / 0.1) !important;
+					}
+
+					/* 加载状态 */
+					.gsc-loading {
+						color: ${colors.text} !important;
+					}
+
+					/* 头像样式 */
+					.gsc-comment-author-avatar {
+						border-radius: 50% !important;
+					}
+
+					/* 链接样式统一 */
+					a {
+						color: ${colors.link} !important;
+					}
+
+					a:hover {
+						color: oklch(from ${colors.link} calc(l * 0.8) c h) !important;
+					}
+
+					/* 强制确保文字可见性和背景 - 白天模式 */
+					${
+						colors.isDark
+							? ""
+							: `
+					/* 强制所有元素为白色背景 */
+					.gsc-main, .gsc-main *, .gsc-main > *,
+					.gsc-comment-content, .gsc-comment-content *,
+					.gsc-comment-header, .gsc-comment-header *,
+					.gsc-timeline, .gsc-timeline *,
+					.gsc-comment-box, .gsc-comment-box *,
+					.gsc-comment, .gsc-comment * {
+						background-color: #ffffff !important;
+						background: #ffffff !important;
+						color: #1a1a1a !important;
+					}
+
+					.gsc-comment-box-textarea {
+						background-color: #ffffff !important;
+						background: #ffffff !important;
+						color: #1a1a1a !important;
+					}
+
+					.gsc-comment-box-textarea::placeholder {
+						color: #666666 !important;
+					}
+
+					/* 特殊元素背景重置 */
+					.gsc-comment {
+						background-color: #f9fafb !important;
+						background: #f9fafb !important;
+					}
+					`
+					}
+
+					/* 强制确保文字可见性 - 深色模式 */
+					${
+						colors.isDark
+							? `
+					.gsc-main, .gsc-main *,
+					.gsc-comment-content, .gsc-comment-content *,
+					.gsc-comment-header, .gsc-comment-header *,
+					.gsc-timeline, .gsc-timeline * {
+						color: #e5e5e5 !important;
+					}
+
+					.gsc-comment-box-textarea {
+						color: #e5e5e5 !important;
+					}
+
+					.gsc-comment-box-textarea::placeholder {
+						color: #999999 !important;
+					}
+					`
+							: ""
+					}
+				`;
+
+				// 移除旧样式（如果存在）
+				const existingStyle = iframeDoc.getElementById(
+					"custom-giscus-theme",
+				);
+				if (existingStyle) {
+					existingStyle.remove();
+				}
+
+				// 添加新样式
+				iframeDoc.head.appendChild(style);
+			} catch (error) {
+				console.warn("无法注入自定义 Giscus 样式:", error);
+			}
+		};
+
+		// 立即尝试应用样式
+		applyStyles();
+
+		// 也监听 load 事件作为备用
+		iframe.addEventListener("load", applyStyles);
+	}
+
 	// 主题同步功能
 	function updateGiscusTheme() {
 		const iframe = document.querySelector<HTMLIFrameElement>(
@@ -66,38 +390,126 @@ const {
 		const theme = document.documentElement.getAttribute("data-theme");
 		const giscusTheme = theme === "dark" ? "dark" : "light";
 
+		console.log("Updating Giscus theme to:", giscusTheme);
+
+		// 发送主题更新消息
 		iframe.contentWindow?.postMessage(
 			{ giscus: { setConfig: { theme: giscusTheme } } },
 			"https://giscus.app",
 		);
+
+		// 立即注入自定义样式
+		setTimeout(() => {
+			injectCustomStyles();
+		}, 100);
+
+		// 再次确保样式应用
+		setTimeout(() => {
+			injectCustomStyles();
+		}, 500);
+	}
+
+	// 添加加载状态管理
+	function setLoadingState(loading: boolean) {
+		const container = document.querySelector(".giscus-container");
+		if (container) {
+			if (loading) {
+				container.classList.add("loading");
+			} else {
+				container.classList.remove("loading");
+			}
+		}
 	}
 
 	// 监听博客主题变化事件（与 ThemeToggle.astro 同步）
 	document.addEventListener("theme-change", () => {
-		// 延迟执行，确保 DOM 更新完成
-		setTimeout(updateGiscusTheme, 100);
+		setTimeout(() => {
+			updateGiscusTheme();
+			// 主题切换后重新注入样式以确保颜色正确
+			setTimeout(injectCustomStyles, 200);
+		}, 100);
 	});
 
 	// 监听 Astro 页面切换事件
 	document.addEventListener("astro:after-swap", () => {
-		// 页面切换后重新同步主题
 		setTimeout(updateGiscusTheme, 500);
 	});
 
-	// 页面加载完成后初始化主题
+	// 页面加载完成后初始化
 	document.addEventListener("DOMContentLoaded", () => {
+		setLoadingState(true);
+
+		// 立即检测当前主题并设置
+		const currentTheme =
+			document.documentElement.getAttribute("data-theme");
+		console.log("Initial theme detected:", currentTheme);
+
 		// 等待 Giscus iframe 加载
-		setTimeout(updateGiscusTheme, 1000);
+		setTimeout(() => {
+			updateGiscusTheme();
+			injectCustomStyles();
+			setLoadingState(false);
+		}, 800);
+
+		// 多次重试确保样式应用
+		setTimeout(() => {
+			injectCustomStyles();
+		}, 1500);
+
+		setTimeout(() => {
+			injectCustomStyles();
+		}, 3000);
 	});
 
-	// 监听 Giscus 加载完成事件
+	// 监听 Giscus 相关事件
 	window.addEventListener("message", (event) => {
 		if (event.origin !== "https://giscus.app") return;
+
 		if (event.data.giscus?.discussion) {
-			// Giscus 已加载，同步主题
+			// Giscus 已加载完成
+			setLoadingState(false);
 			updateGiscusTheme();
+			// 确保样式正确应用
+			setTimeout(injectCustomStyles, 100);
+		}
+
+		if (event.data.giscus?.error) {
+			// 处理加载错误
+			setLoadingState(false);
+			console.warn("Giscus loading error:", event.data.giscus.error);
 		}
 	});
+
+	// 监听 Giscus 容器内容变化，确保动态内容也有正确样式
+	function observeGiscusChanges() {
+		const giscusContainer = document.querySelector(".giscus-container");
+		if (!giscusContainer) return;
+
+		const observer = new MutationObserver((mutations) => {
+			let shouldReapplyStyles = false;
+			mutations.forEach((mutation) => {
+				if (
+					mutation.type === "childList" &&
+					mutation.addedNodes.length > 0
+				) {
+					// 有新的子节点添加，可能是 Giscus 内容
+					shouldReapplyStyles = true;
+				}
+			});
+
+			if (shouldReapplyStyles) {
+				setTimeout(injectCustomStyles, 100);
+			}
+		});
+
+		observer.observe(giscusContainer, {
+			childList: true,
+			subtree: true,
+		});
+	}
+
+	// 启动内容变化监听
+	setTimeout(observeGiscusChanges, 1000);
 
 	// 备用方案：监听 data-theme 属性变化
 	const observer = new MutationObserver((mutations) => {
@@ -119,8 +531,52 @@ const {
 
 <style>
 	.giscus-container {
-		/* 确保评论区域有足够的空间 */
+		/* 基础样式 */
 		min-height: 200px;
+		border-radius: 8px;
+		padding: 1.5rem;
+		margin-top: 4rem;
+		background: var(--color-global-bg);
+		border: 1px solid oklch(from var(--color-global-text) l c h / 0.1);
+		transition: all 0.3s ease;
+	}
+
+	/* 标题样式 */
+	.giscus-container h2 {
+		color: var(--color-accent-2);
+		font-size: 1.25rem;
+		font-weight: 600;
+		margin-bottom: 1.5rem;
+		position: relative;
+	}
+
+	/* 分隔线样式 */
+	.giscus-container hr {
+		border: none;
+		height: 1px;
+		background: linear-gradient(
+			90deg,
+			transparent,
+			oklch(from var(--color-accent) l c h / 0.3) 50%,
+			transparent
+		);
+		margin-bottom: 2rem;
+	}
+
+	/* Giscus iframe 容器样式覆盖 */
+	.giscus-container :global(.giscus) {
+		/* 确保 iframe 继承容器样式 */
+		border-radius: 6px;
+		overflow: hidden;
+	}
+
+	/* 确保 iframe 完全透明，让容器背景显示 */
+	.giscus-container :global(iframe.giscus-frame) {
+		background: transparent !important;
+		border: none !important;
+		border-radius: 6px;
+		width: 100% !important;
+		min-height: 150px;
 	}
 
 	/* 响应式设计 */
@@ -128,18 +584,128 @@ const {
 		.giscus-container {
 			margin-left: -1rem;
 			margin-right: -1rem;
-			padding-left: 1rem;
-			padding-right: 1rem;
+			padding: 1rem;
+			border-radius: 0;
+			border-left: none;
+			border-right: none;
 		}
 	}
 
-	/* 深色模式下的样式调整 */
+	/* 深色模式适配 */
 	[data-theme="dark"] .giscus-container {
-		/* 可以添加深色模式特定的样式 */
+		background: oklch(from var(--color-global-bg) l c h / 0.8);
+		border-color: oklch(from var(--color-global-text) l c h / 0.15);
+		backdrop-filter: blur(10px);
 	}
 
-	/* 浅色模式下的样式调整 */
+	/* 浅色模式适配 */
 	[data-theme="light"] .giscus-container {
-		/* 可以添加浅色模式特定的样式 */
+		background: oklch(from var(--color-global-bg) l c h / 0.9);
+		border-color: oklch(from var(--color-global-text) l c h / 0.08);
+		box-shadow: 0 1px 3px oklch(from var(--color-global-text) l c h / 0.05);
+	}
+
+	/* Hover 效果 */
+	.giscus-container:hover {
+		border-color: oklch(from var(--color-accent) l c h / 0.2);
+		box-shadow: 0 4px 12px oklch(from var(--color-accent) l c h / 0.1);
+	}
+
+	[data-theme="dark"] .giscus-container:hover {
+		border-color: oklch(from var(--color-accent) l c h / 0.3);
+		box-shadow: 0 4px 12px oklch(from var(--color-accent) l c h / 0.15);
+	}
+
+	/* 加载状态样式 */
+	.giscus-container.loading {
+		position: relative;
+		overflow: hidden;
+	}
+
+	.giscus-container.loading::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(
+			90deg,
+			transparent,
+			oklch(from var(--color-accent) l c h / 0.1),
+			transparent
+		);
+		animation: shimmer 2s infinite;
+	}
+
+	@keyframes shimmer {
+		0% {
+			left: -100%;
+		}
+		100% {
+			left: 100%;
+		}
+	}
+
+	/* 确保评论内容与网站风格一致 */
+	.giscus-container :global(.giscus-frame) {
+		/* 这些样式会通过 postMessage 传递给 iframe */
+		color-scheme: light dark;
+	}
+
+	/* 减少动画效果（尊重用户偏好） */
+	@media (prefers-reduced-motion: reduce) {
+		.giscus-container,
+		.giscus-container::before {
+			transition: none;
+			animation: none;
+		}
+	}
+
+	/* 备用样式：当无法访问 iframe 内容时的外部样式 */
+	.giscus-container :global(.giscus) {
+		/* 设置 CSS 变量，Giscus 可能会使用这些 */
+		--color-primary: var(--color-accent);
+		--color-primary-hover: oklch(
+			from var(--color-accent) calc(l * 0.9) c h
+		);
+		--color-text: var(--color-global-text);
+		--color-bg: var(--color-global-bg);
+		--color-border: oklch(from var(--color-global-text) l c h / 0.1);
+		--color-link: var(--color-link);
+
+		/* 字体继承 */
+		font-family:
+			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+			"Liberation Mono", "Courier New", monospace;
+
+		/* 强制文字颜色 - 浅色模式 */
+		color: var(--color-global-text) !important;
+	}
+
+	/* 浅色模式下强制深色文字 */
+	[data-theme="light"] .giscus-container :global(.giscus) {
+		--gsc-color-text-primary: #1a1a1a;
+		--gsc-color-text-secondary: #666666;
+		--gsc-color-text-link: var(--color-link);
+		color: #1a1a1a !important;
+	}
+
+	/* 深色模式下的 CSS 变量调整 */
+	[data-theme="dark"] .giscus-container :global(.giscus) {
+		--color-primary: var(--color-accent);
+		--color-primary-hover: oklch(
+			from var(--color-accent) calc(l * 1.1) c h
+		);
+		--color-text: var(--color-global-text);
+		--color-bg: var(--color-global-bg);
+		--color-border: oklch(from var(--color-global-text) l c h / 0.15);
+		--color-link: var(--color-link);
+
+		/* 深色模式下强制浅色文字 */
+		--gsc-color-text-primary: #e5e5e5;
+		--gsc-color-text-secondary: #999999;
+		--gsc-color-text-link: var(--color-link);
+		color: #e5e5e5 !important;
 	}
 </style>
