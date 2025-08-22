@@ -1,0 +1,260 @@
+---
+import { getBlogStats, getMonthlyStats } from "@/data/post";
+import { getFormattedDate } from "@/utils/date";
+import StatCard from "./StatCard.astro";
+import MonthlyChart from "./MonthlyChart.astro";
+import TagCloud from "./TagCloud.astro";
+
+const stats = await getBlogStats();
+const monthlyStats = await getMonthlyStats();
+
+// Format numbers for display
+function formatNumber(num: number): string {
+	if (num >= 1000000) {
+		return (num / 1000000).toFixed(1) + "M";
+	}
+	if (num >= 1000) {
+		return (num / 1000).toFixed(1) + "K";
+	}
+	return num.toString();
+}
+
+// Calculate writing streak (days since last post)
+const daysSinceLastPost = stats.lastPostDate
+	? Math.floor(
+			(Date.now() - stats.lastPostDate.getTime()) / (1000 * 60 * 60 * 24),
+		)
+	: null;
+
+// Calculate total writing period
+const writingPeriodDays =
+	stats.firstPostDate && stats.lastPostDate
+		? Math.floor(
+				(stats.lastPostDate.getTime() - stats.firstPostDate.getTime()) /
+					(1000 * 60 * 60 * 24),
+			)
+		: null;
+---
+
+<div class="space-y-8">
+	<!-- Overview Stats -->
+	<section>
+		<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+			Blog Statistics
+		</h2>
+		<div
+			class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+		>
+			<StatCard
+				title="Total Posts"
+				value={stats.totalPosts}
+				subtitle={`${stats.postsThisYear} this year`}
+				icon="📝"
+				href="/posts/"
+			/>
+
+			<StatCard
+				title="Total Words"
+				value={formatNumber(stats.totalWords)}
+				subtitle={`~${Math.round(stats.totalWords / 250)} pages`}
+				icon="📖"
+			/>
+
+			<StatCard
+				title="Reading Time"
+				value={`${Math.round(stats.totalReadingTime)} min`}
+				subtitle={`~${Math.round(stats.totalReadingTime / 60)} hours`}
+				icon="⏱️"
+			/>
+
+			<StatCard
+				title="Average Length"
+				value={`${stats.averageWordsPerPost} words`}
+				subtitle={`${stats.averageReadingTimePerPost} min read`}
+				icon="📊"
+			/>
+		</div>
+	</section>
+
+	<!-- Activity Stats -->
+	<section>
+		<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+			Writing Activity
+		</h3>
+		<div
+			class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+		>
+			<StatCard
+				title="This Month"
+				value={stats.postsThisMonth}
+				subtitle="posts published"
+				icon="📅"
+			/>
+
+			<StatCard
+				title="This Year"
+				value={stats.postsThisYear}
+				subtitle="posts published"
+				icon="🗓️"
+			/>
+
+			{
+				daysSinceLastPost !== null && (
+					<StatCard
+						title="Last Post"
+						value={`${daysSinceLastPost} days ago`}
+						subtitle={
+							stats.lastPostDate
+								? getFormattedDate(stats.lastPostDate)
+								: ""
+						}
+						icon="🕒"
+					/>
+				)
+			}
+		</div>
+	</section>
+
+	<!-- Charts and Visual Data -->
+	<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+		<MonthlyChart data={monthlyStats} />
+		<TagCloud tags={stats.tagStats} />
+	</section>
+
+	<!-- Detailed Stats -->
+	<section>
+		<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+			Detailed Information
+		</h3>
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+			<!-- Writing Period -->
+			{
+				stats.firstPostDate && stats.lastPostDate && (
+					<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6">
+						<h4 class="font-semibold text-gray-900 dark:text-white mb-3">
+							Writing Journey
+						</h4>
+						<div class="space-y-2 text-sm">
+							<div class="flex justify-between">
+								<span class="text-gray-600 dark:text-gray-400">
+									First post:
+								</span>
+								<span class="font-medium">
+									{getFormattedDate(stats.firstPostDate)}
+								</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-gray-600 dark:text-gray-400">
+									Latest post:
+								</span>
+								<span class="font-medium">
+									{getFormattedDate(stats.lastPostDate)}
+								</span>
+							</div>
+							{writingPeriodDays && (
+								<div class="flex justify-between">
+									<span class="text-gray-600 dark:text-gray-400">
+										Writing period:
+									</span>
+									<span class="font-medium">
+										{writingPeriodDays} days
+									</span>
+								</div>
+							)}
+							{writingPeriodDays && (
+								<div class="flex justify-between">
+									<span class="text-gray-600 dark:text-gray-400">
+										Average frequency:
+									</span>
+									<span class="font-medium">
+										{Math.round(
+											writingPeriodDays /
+												stats.totalPosts,
+										)}{" "}
+										days/post
+									</span>
+								</div>
+							)}
+						</div>
+					</div>
+				)
+			}
+
+			<!-- Post Records -->
+			<div
+				class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6"
+			>
+				<h4 class="font-semibold text-gray-900 dark:text-white mb-3">
+					Post Records
+				</h4>
+				<div class="space-y-3 text-sm">
+					{
+						stats.longestPost && (
+							<div>
+								<div class="text-gray-600 dark:text-gray-400 mb-1">
+									Longest post:
+								</div>
+								<a
+									href={`/posts/${stats.longestPost.id}/`}
+									class="cactus-link font-medium block"
+								>
+									{stats.longestPost.title}
+								</a>
+								<div class="text-xs text-gray-500 dark:text-gray-500">
+									{stats.longestPost.words} words
+								</div>
+							</div>
+						)
+					}
+
+					{
+						stats.shortestPost &&
+							stats.shortestPost.id !== stats.longestPost?.id && (
+								<div>
+									<div class="text-gray-600 dark:text-gray-400 mb-1">
+										Shortest post:
+									</div>
+									<a
+										href={`/posts/${stats.shortestPost.id}/`}
+										class="cactus-link font-medium block"
+									>
+										{stats.shortestPost.title}
+									</a>
+									<div class="text-xs text-gray-500 dark:text-gray-500">
+										{stats.shortestPost.words} words
+									</div>
+								</div>
+							)
+					}
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Yearly Breakdown -->
+	{
+		Object.keys(stats.postsByYear).length > 1 && (
+			<section>
+				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+					Posts by Year
+				</h3>
+				<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6">
+					<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+						{Object.entries(stats.postsByYear)
+							.sort(([a], [b]) => parseInt(b) - parseInt(a))
+							.map(([year, count]) => (
+								<div class="text-center">
+									<div class="text-2xl font-bold text-gray-900 dark:text-white">
+										{count}
+									</div>
+									<div class="text-sm text-gray-600 dark:text-gray-400">
+										{year}
+									</div>
+								</div>
+							))}
+					</div>
+				</div>
+			</section>
+		)
+	}
+</div>

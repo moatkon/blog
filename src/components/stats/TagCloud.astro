@@ -1,0 +1,84 @@
+---
+export interface Props {
+	tags: [string, number][];
+	title?: string;
+	maxTags?: number;
+}
+
+const { tags, title = "Popular Tags", maxTags = 20 } = Astro.props;
+
+// Get top tags and calculate font sizes
+const topTags = tags.slice(0, maxTags);
+const maxCount = Math.max(...topTags.map(([, count]) => count), 1);
+const minCount = Math.min(...topTags.map(([, count]) => count), 1);
+
+// Calculate font size based on tag frequency
+function getFontSize(count: number): string {
+	if (maxCount === minCount) return "text-base";
+
+	const ratio = (count - minCount) / (maxCount - minCount);
+
+	if (ratio >= 0.8) return "text-2xl";
+	if (ratio >= 0.6) return "text-xl";
+	if (ratio >= 0.4) return "text-lg";
+	if (ratio >= 0.2) return "text-base";
+	return "text-sm";
+}
+
+// Calculate opacity based on tag frequency
+function getOpacity(count: number): string {
+	if (maxCount === minCount) return "opacity-80";
+
+	const ratio = (count - minCount) / (maxCount - minCount);
+
+	if (ratio >= 0.8) return "opacity-100";
+	if (ratio >= 0.6) return "opacity-90";
+	if (ratio >= 0.4) return "opacity-80";
+	if (ratio >= 0.2) return "opacity-70";
+	return "opacity-60";
+}
+---
+
+<div
+	class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-4 sm:p-6"
+>
+	<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+		{title}
+	</h3>
+
+	{
+		topTags.length > 0 ? (
+			<div class="flex flex-wrap gap-2 sm:gap-3 items-center justify-center">
+				{topTags.map(([tag, count]) => (
+					<a
+						href={`/tags/${tag}/`}
+						class={`
+						cactus-link font-medium transition-all duration-200 hover:scale-110
+						${getFontSize(count)} ${getOpacity(count)}
+					`}
+						title={`${count} post${count > 1 ? "s" : ""}`}
+					>
+						#{tag}
+					</a>
+				))}
+			</div>
+		) : (
+			<div class="text-center py-8 text-gray-500 dark:text-gray-400">
+				<p>No tags found</p>
+			</div>
+		)
+	}
+
+	{
+		tags.length > maxTags && (
+			<div class="mt-4 text-center">
+				<a
+					href="/tags/"
+					class="text-sm text-accent hover:text-accent-2 transition-colors"
+				>
+					View all {tags.length} tags →
+				</a>
+			</div>
+		)
+	}
+</div>

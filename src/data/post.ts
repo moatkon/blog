@@ -1,4 +1,4 @@
-import { type CollectionEntry, getCollection } from "astro:content";
+import { type CollectionEntry, getCollection, render } from "astro:content";
 
 /** filter out draft posts based on the environment */
 export async function getAllPosts(): Promise<CollectionEntry<"post">[]> {
@@ -122,4 +122,176 @@ export function getRelatedPosts(
 	return postsWithSimilarity
 		.slice(0, maxResults)
 		.map(item => item.post);
+}
+
+/** Statistics interfaces and types */
+export interface BlogStats {
+	totalPosts: number;
+	totalWords: number;
+	totalReadingTime: number; // in minutes
+	averageWordsPerPost: number;
+	averageReadingTimePerPost: number; // in minutes
+	postsByYear: Record<string, number>;
+	postsByMonth: Record<string, number>;
+	tagStats: [string, number][];
+	firstPostDate: Date | null;
+	lastPostDate: Date | null;
+	postsThisYear: number;
+	postsThisMonth: number;
+	longestPost: { title: string; words: number; id: string } | null;
+	shortestPost: { title: string; words: number; id: string } | null;
+}
+
+export interface MonthlyStats {
+	year: number;
+	month: number;
+	count: number;
+	monthName: string;
+}
+
+/** Calculate comprehensive blog statistics */
+export async function getBlogStats(): Promise<BlogStats> {
+	const posts = await getAllPosts();
+
+	if (posts.length === 0) {
+		return {
+			totalPosts: 0,
+			totalWords: 0,
+			totalReadingTime: 0,
+			averageWordsPerPost: 0,
+			averageReadingTimePerPost: 0,
+			postsByYear: {},
+			postsByMonth: {},
+			tagStats: [],
+			firstPostDate: null,
+			lastPostDate: null,
+			postsThisYear: 0,
+			postsThisMonth: 0,
+			longestPost: null,
+			shortestPost: null,
+		};
+	}
+
+	// Calculate word counts and reading times for all posts
+	const postsWithStats = await Promise.all(
+		posts.map(async (post) => {
+			const { remarkPluginFrontmatter } = await render(post);
+			const readingTimeText = remarkPluginFrontmatter.readingTime as string;
+
+			// Extract reading time in minutes from text like "3 min read"
+			const readingTimeMatch = readingTimeText.match(/(\d+)/);
+			const readingTimeMinutes = readingTimeMatch ? parseInt(readingTimeMatch[1]) : 0;
+
+			// Estimate word count from reading time (average 200 words per minute)
+			const estimatedWords = readingTimeMinutes * 200;
+
+			return {
+				post,
+				words: estimatedWords,
+				readingTime: readingTimeMinutes,
+			};
+		})
+	);
+
+	// Basic statistics
+	const totalPosts = posts.length;
+	const totalWords = postsWithStats.reduce((sum, { words }) => sum + words, 0);
+	const totalReadingTime = postsWithStats.reduce((sum, { readingTime }) => sum + readingTime, 0);
+	const averageWordsPerPost = totalWords / totalPosts;
+	const averageReadingTimePerPost = totalReadingTime / totalPosts;
+
+	// Date-based statistics
+	const sortedPosts = posts.sort((a, b) => a.data.publishDate.getTime() - b.data.publishDate.getTime());
+	const firstPostDate = sortedPosts[0]?.data.publishDate || null;
+	const lastPostDate = sortedPosts[sortedPosts.length - 1]?.data.publishDate || null;
+
+	// Current year and month statistics
+	const now = new Date();
+	const currentYear = now.getFullYear();
+	const currentMonth = now.getMonth();
+
+	const postsThisYear = posts.filter(post => post.data.publishDate.getFullYear() === currentYear).length;
+	const postsThisMonth = posts.filter(post => {
+		const postDate = post.data.publishDate;
+		return postDate.getFullYear() === currentYear && postDate.getMonth() === currentMonth;
+	}).length;
+
+	// Posts by year
+	const postsByYear = posts.reduce<Record<string, number>>((acc, post) => {
+		const year = post.data.publishDate.getFullYear().toString();
+		acc[year] = (acc[year] || 0) + 1;
+		return acc;
+	}, {});
+
+	// Posts by month (format: "YYYY-MM")
+	const postsByMonth = posts.reduce<Record<string, number>>((acc, post) => {
+		const date = post.data.publishDate;
+		const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+		acc[monthKey] = (acc[monthKey] || 0) + 1;
+		return acc;
+	}, {});
+
+	// Tag statistics
+	const tagStats = getUniqueTagsWithCount(posts);
+
+	// Longest and shortest posts
+	const sortedByWords = postsWithStats.sort((a, b) => b.words - a.words);
+	const longestPost = sortedByWords[0] ? {
+		title: sortedByWords[0].post.data.title,
+		words: sortedByWords[0].words,
+		id: sortedByWords[0].post.id,
+	} : null;
+
+	const shortestPost = sortedByWords[sortedByWords.length - 1] ? {
+		title: sortedByWords[sortedByWords.length - 1].post.data.title,
+		words: sortedByWords[sortedByWords.length - 1].words,
+		id: sortedByWords[sortedByWords.length - 1].post.id,
+	} : null;
+
+	return {
+		totalPosts,
+		totalWords,
+		totalReadingTime,
+		averageWordsPerPost: Math.round(averageWordsPerPost),
+		averageReadingTimePerPost: Math.round(averageReadingTimePerPost * 10) / 10, // Round to 1 decimal
+		postsByYear,
+		postsByMonth,
+		tagStats,
+		firstPostDate,
+		lastPostDate,
+		postsThisYear,
+		postsThisMonth,
+		longestPost,
+		shortestPost,
+	};
+}
+
+/** Get monthly statistics for chart display */
+export async function getMonthlyStats(): Promise<MonthlyStats[]> {
+	const posts = await getAllPosts();
+	const monthlyData = new Map<string, { year: number; month: number; count: number }>();
+
+	posts.forEach(post => {
+		const date = post.data.publishDate;
+		const year = date.getFullYear();
+		const month = date.getMonth();
+		const key = `${year}-${month}`;
+
+		if (!monthlyData.has(key)) {
+			monthlyData.set(key, { year, month, count: 0 });
+		}
+		monthlyData.get(key)!.count++;
+	});
+
+	const monthNames = [
+		'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+		'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+	];
+
+	return Array.from(monthlyData.values())
+		.sort((a, b) => a.year - b.year || a.month - b.month)
+		.map(item => ({
+			...item,
+			monthName: monthNames[item.month],
+		}));
 }

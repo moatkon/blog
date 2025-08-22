@@ -1,0 +1,107 @@
+---
+export interface Props {
+	title: string;
+	value: string | number;
+	subtitle?: string;
+	icon?: string;
+	trend?: "up" | "down" | "neutral";
+	trendValue?: string;
+	href?: string;
+}
+
+const { title, value, subtitle, icon, trend, trendValue, href } = Astro.props;
+---
+
+<div
+	class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-4 sm:p-6 hover:shadow-md transition-shadow"
+>
+	{
+		href ? (
+			<a href={href} class="block">
+				<div class="flex items-center justify-between">
+					<div class="flex-1">
+						<p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+							{title}
+						</p>
+						<p class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+							{value}
+						</p>
+						{subtitle && (
+							<p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+								{subtitle}
+							</p>
+						)}
+					</div>
+					{icon && (
+						<div class="ml-4">
+							<div class="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
+								<span class="text-accent text-lg">{icon}</span>
+							</div>
+						</div>
+					)}
+				</div>
+				{trend && trendValue && (
+					<div class="mt-4 flex items-center">
+						<span
+							class={`text-xs font-medium ${
+								trend === "up"
+									? "text-green-600 dark:text-green-400"
+									: trend === "down"
+										? "text-red-600 dark:text-red-400"
+										: "text-gray-600 dark:text-gray-400"
+							}`}
+						>
+							{trend === "up"
+								? "↗"
+								: trend === "down"
+									? "↘"
+									: "→"}{" "}
+							{trendValue}
+						</span>
+					</div>
+				)}
+			</a>
+		) : (
+			<div class="flex items-center justify-between">
+				<div class="flex-1">
+					<p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+						{title}
+					</p>
+					<p class="text-2xl font-bold text-gray-900 dark:text-white">
+						{value}
+					</p>
+					{subtitle && (
+						<p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+							{subtitle}
+						</p>
+					)}
+				</div>
+				{icon && (
+					<div class="ml-4">
+						<div class="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
+							<span class="text-accent text-lg">{icon}</span>
+						</div>
+					</div>
+				)}
+			</div>
+		)
+	}
+	{
+		trend && trendValue && !href && (
+			<div class="mt-4 flex items-center">
+				<span
+					class={`text-xs font-medium ${
+						trend === "up"
+							? "text-green-600 dark:text-green-400"
+							: trend === "down"
+								? "text-red-600 dark:text-red-400"
+								: "text-gray-600 dark:text-gray-400"
+					}`}
+				>
+					{trend === "up" ? "↗" : trend === "down" ? "↘" : "→"}{" "}
+					{trendValue}
+				</span>
+			</div>
+		)
+	}
+</div>

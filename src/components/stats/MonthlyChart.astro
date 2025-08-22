@@ -1,0 +1,74 @@
+---
+import type { MonthlyStats } from "@/data/post";
+
+export interface Props {
+	data: MonthlyStats[];
+	title?: string;
+}
+
+const { data, title = "Monthly Posts" } = Astro.props;
+
+// Calculate max value for scaling
+const maxCount = Math.max(...data.map(d => d.count), 1);
+
+// Get last 12 months of data
+const last12Months = data.slice(-12);
+---
+
+<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-4 sm:p-6">
+	<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{title}</h3>
+	
+	{last12Months.length > 0 ? (
+		<div class="space-y-4">
+			<!-- Chart bars -->
+			<div class="flex items-end justify-between h-32 gap-1">
+				{last12Months.map((month: MonthlyStats) => (
+					<div class="flex-1 flex flex-col items-center">
+						<div 
+							class="w-full bg-accent/20 hover:bg-accent/30 transition-colors rounded-t"
+							style={`height: ${(month.count / maxCount) * 100}%`}
+							title={`${month.monthName} ${month.year}: ${month.count} posts`}
+						>
+							<div 
+								class="w-full bg-accent rounded-t"
+								style={`height: ${month.count > 0 ? '100%' : '0%'}`}
+							></div>
+						</div>
+					</div>
+				))}
+			</div>
+			
+			<!-- Month labels -->
+			<div class="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+				{last12Months.map((month: MonthlyStats) => (
+					<span class="flex-1 text-center">
+						{month.monthName}
+					</span>
+				))}
+			</div>
+			
+			<!-- Year labels (only show when year changes) -->
+			<div class="flex justify-between text-xs text-gray-500 dark:text-gray-500">
+				{last12Months.map((month: MonthlyStats, index: number) => {
+					const showYear = index === 0 || month.year !== last12Months[index - 1]?.year;
+					return (
+						<span class="flex-1 text-center">
+							{showYear ? month.year : ''}
+						</span>
+					);
+				})}
+			</div>
+		</div>
+	) : (
+		<div class="text-center py-8 text-gray-500 dark:text-gray-400">
+			<p>No data available</p>
+		</div>
+	)}
+</div>
+
+<style>
+	/* Ensure minimum height for bars with data */
+	.bg-accent {
+		min-height: 4px;
+	}
+</style>
