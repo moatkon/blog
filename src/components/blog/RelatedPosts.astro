@@ -20,9 +20,9 @@ const relatedPosts = getRelatedPosts(currentPost, allPosts, maxResults);
 		<section class="mt-16">
 			<hr class="border-solid mb-8" />
 			<h2 class="title mb-6 text-xl before:hidden">相关文章</h2>
-			<ul class="space-y-4" role="list">
+			<ul class="space-y-4 list-none pl-0 ml-0" role="list">
 				{relatedPosts.map((p) => (
-					<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
+					<li class="grid gap-1 sm:grid-cols-[auto_1fr] pl-0 ml-0">
 						<PostPreview post={p} />
 					</li>
 				))}
