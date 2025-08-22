@@ -1,0 +1,32 @@
+---
+import type { CollectionEntry } from "astro:content";
+import PostPreview from "@/components/blog/PostPreview.astro";
+import { getAllPosts, getRelatedPosts } from "@/data/post";
+
+interface Props {
+	currentPost: CollectionEntry<"post">;
+	maxResults?: number;
+}
+
+const { currentPost, maxResults = 3 } = Astro.props;
+
+// Get all posts and find related ones
+const allPosts = await getAllPosts();
+const relatedPosts = getRelatedPosts(currentPost, allPosts, maxResults);
+---
+
+{
+	relatedPosts.length > 0 && (
+		<section class="mt-16">
+			<hr class="border-solid mb-8" />
+			<h2 class="title mb-6 text-xl before:hidden">相关文章</h2>
+			<ul class="space-y-4" role="list">
+				{relatedPosts.map((p) => (
+					<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
+						<PostPreview post={p} />
+					</li>
+				))}
+			</ul>
+		</section>
+	)
+}
