@@ -5,6 +5,7 @@ import Masthead from "@/components/blog/Masthead.astro";
 import TOC from "@/components/blog/TOC.astro";
 import RelatedPosts from "@/components/blog/RelatedPosts.astro";
 import WebMentions from "@/components/blog/webmentions/index.astro";
+import ReadingProgress from "@/components/ReadingProgress.astro";
 
 import BaseLayout from "./Base.astro";
 
@@ -28,6 +29,7 @@ const readingTime: string = remarkPluginFrontmatter.readingTime;
 		title,
 	}}
 >
+	<ReadingProgress />
 	<article class="grow break-words" data-pagefind-body>
 		<div id="blog-hero" class="mb-12">
 			<Masthead content={post} readingTime={readingTime} />
