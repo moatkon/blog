@@ -4,6 +4,7 @@ description: 看《浪浪山小妖怪》
 publishDate: "2025-08-23 14:01:20"
 # updatedDate: 22 Jan 2024
 draft: false
+tags: ["记录"]
 coverImage: 
   src: "/public/202508/llsxyg.jpg"
   alt: "movie ticket"
