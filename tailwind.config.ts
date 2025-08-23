@@ -18,6 +18,16 @@ export default {
 						},
 						blockquote: {
 							borderLeftWidth: "0",
+							fontStyle: "normal",// 添加这行，使用普通字体
+							fontWeight: "normal", // 添加这行，防止字体变粗
+    						color: "inherit",     // 添加这行，使用继承的文字颜色
+						    quotes: "none",        // 添加这行，去掉引号
+							"&:before": {          // 添加这部分，确保没有前置引号
+								content: "none",
+							},
+							"&:after": {           // 添加这部分，确保没有后置引号
+								content: "none",
+							},
 						},
 						code: {
 							border: "1px dotted #666",

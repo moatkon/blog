@@ -69,6 +69,11 @@
 	.title {
 		@apply text-accent-2 text-2xl font-semibold;
 	}
+
+	/* 引用块样式 - 符合网站全局风格 */
+	.prose blockquote {
+		@apply bg-global-text/5 rounded-md px-4 py-2;
+	}
 }
 
 @utility prose {
@@ -79,6 +84,6 @@
 	--tw-prose-headings: var(--color-accent-2);
 	--tw-prose-hr: 0.5px dashed #666;
 	--tw-prose-links: var(--color-global-text);
-	--tw-prose-quotes: var(--color-quote);
+	--tw-prose-quotes: var(--color-global-text);
 	--tw-prose-th-borders: #666;
 }
