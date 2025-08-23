@@ -72,7 +72,7 @@
 
 	/* 引用块样式 - 符合网站全局风格 */
 	.prose blockquote {
-		@apply bg-global-text/5 rounded-md px-4 py-2;
+		@apply bg-global-text/5 rounded-md py-1;
 	}
 }
 
