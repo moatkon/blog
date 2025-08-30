@@ -37,7 +37,7 @@ const writingPeriodDays =
 ---
 
 <div class="space-y-8">
-	<!-- Overview Stats -->
+	<!-- Blog Statistics -->
 	<section>
 		<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
 			Blog Statistics
@@ -114,6 +114,85 @@ const writingPeriodDays =
 			}
 		</div>
 	</section>
+
+	<!-- Notes Statistics -->
+	{
+		stats.totalNotes > 0 && (
+			<section>
+				<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+					Notes Statistics
+				</h2>
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+					<StatCard
+						title="Total Notes"
+						value={stats.totalNotes}
+						subtitle={`${stats.notesThisYear} this year`}
+						icon="📝"
+						href="/notes/"
+					/>
+
+					<StatCard
+						title="Total Words"
+						value={formatNumber(stats.totalNotesWords)}
+						subtitle={`~${Math.round(stats.totalNotesWords / 250)} pages`}
+						icon="📖"
+					/>
+
+					<StatCard
+						title="Reading Time"
+						value={`${Math.round(stats.totalNotesReadingTime)} min`}
+						subtitle={`~${Math.round(stats.totalNotesReadingTime / 60)} hours`}
+						icon="⏱️"
+					/>
+
+					<StatCard
+						title="Average Length"
+						value={`${stats.averageWordsPerNote} words`}
+						subtitle={`${stats.averageReadingTimePerNote} min read`}
+						icon="📊"
+					/>
+				</div>
+			</section>
+		)
+	}
+
+	<!-- Notes Activity Stats -->
+	{
+		stats.totalNotes > 0 && (
+			<section>
+				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+					Notes Activity
+				</h3>
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+					<StatCard
+						title="This Month"
+						value={stats.notesThisMonth}
+						subtitle="notes published"
+						icon="📅"
+					/>
+
+					<StatCard
+						title="This Year"
+						value={stats.notesThisYear}
+						subtitle="notes published"
+						icon="🗓️"
+					/>
+
+					{stats.lastNoteDate && (
+						<StatCard
+							title="Last Note"
+							value={`${Math.floor(
+								(Date.now() - stats.lastNoteDate.getTime()) /
+									(1000 * 60 * 60 * 24),
+							)} days ago`}
+							subtitle={getFormattedDate(stats.lastNoteDate)}
+							icon="🕒"
+						/>
+					)}
+				</div>
+			</section>
+		)
+	}
 
 	<!-- Charts and Visual Data -->
 	<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -228,6 +307,54 @@ const writingPeriodDays =
 					}
 				</div>
 			</div>
+
+			<!-- Note Records -->
+			{
+				stats.totalNotes > 0 && (
+					<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6">
+						<h4 class="font-semibold text-gray-900 dark:text-white mb-3">
+							Note Records
+						</h4>
+						<div class="space-y-3 text-sm">
+							{stats.longestNote && (
+								<div>
+									<div class="text-gray-600 dark:text-gray-400 mb-1">
+										Longest note:
+									</div>
+									<a
+										href={`/notes/${stats.longestNote.id}/`}
+										class="cactus-link font-medium block"
+									>
+										{stats.longestNote.title}
+									</a>
+									<div class="text-xs text-gray-500 dark:text-gray-500">
+										{stats.longestNote.words} words
+									</div>
+								</div>
+							)}
+
+							{stats.shortestNote &&
+								stats.shortestNote.id !==
+									stats.longestNote?.id && (
+									<div>
+										<div class="text-gray-600 dark:text-gray-400 mb-1">
+											Shortest note:
+										</div>
+										<a
+											href={`/notes/${stats.shortestNote.id}/`}
+											class="cactus-link font-medium block"
+										>
+											{stats.shortestNote.title}
+										</a>
+										<div class="text-xs text-gray-500 dark:text-gray-500">
+											{stats.shortestNote.words} words
+										</div>
+									</div>
+								)}
+						</div>
+					</div>
+				)
+			}
 		</div>
 	</section>
 
@@ -241,6 +368,33 @@ const writingPeriodDays =
 				<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6">
 					<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
 						{Object.entries(stats.postsByYear)
+							.sort(([a], [b]) => parseInt(b) - parseInt(a))
+							.map(([year, count]) => (
+								<div class="text-center">
+									<div class="text-2xl font-bold text-gray-900 dark:text-white">
+										{count}
+									</div>
+									<div class="text-sm text-gray-600 dark:text-gray-400">
+										{year}
+									</div>
+								</div>
+							))}
+					</div>
+				</div>
+			</section>
+		)
+	}
+
+	<!-- Notes Yearly Breakdown -->
+	{
+		stats.totalNotes > 0 && Object.keys(stats.notesByYear).length > 1 && (
+			<section>
+				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+					Notes by Year
+				</h3>
+				<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6">
+					<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+						{Object.entries(stats.notesByYear)
 							.sort(([a], [b]) => parseInt(b) - parseInt(a))
 							.map(([year, count]) => (
 								<div class="text-center">

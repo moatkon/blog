@@ -7,6 +7,14 @@ export async function getAllPosts(): Promise<CollectionEntry<"post">[]> {
 	});
 }
 
+/** Get all notes (filter out drafts) */
+export async function getAllNotes(): Promise<CollectionEntry<"note">[]> {
+	return await getCollection("note", ({ data }) => {
+		// Filter out drafts if the note has a draft field
+		return import.meta.env.PROD ? !(data as any).draft : true;
+	});
+}
+
 /** Get tag metadata by tag name */
 export async function getTagMeta(tag: string): Promise<CollectionEntry<"tag"> | undefined> {
 	const tagEntries = await getCollection("tag", (entry) => {
@@ -140,6 +148,20 @@ export interface BlogStats {
 	postsThisMonth: number;
 	longestPost: { title: string; words: number; id: string } | null;
 	shortestPost: { title: string; words: number; id: string } | null;
+	// Note statistics
+	totalNotes: number;
+	totalNotesWords: number;
+	totalNotesReadingTime: number; // in minutes
+	averageWordsPerNote: number;
+	averageReadingTimePerNote: number; // in minutes
+	notesByYear: Record<string, number>;
+	notesByMonth: Record<string, number>;
+	firstNoteDate: Date | null;
+	lastNoteDate: Date | null;
+	notesThisYear: number;
+	notesThisMonth: number;
+	longestNote: { title: string; words: number; id: string } | null;
+	shortestNote: { title: string; words: number; id: string } | null;
 }
 
 export interface MonthlyStats {
@@ -153,7 +175,10 @@ export interface MonthlyStats {
 export async function getBlogStats(): Promise<BlogStats> {
 	const posts = await getAllPosts();
 
-	if (posts.length === 0) {
+	// Get notes data
+	const notes = await getAllNotes();
+
+	if (posts.length === 0 && notes.length === 0) {
 		return {
 			totalPosts: 0,
 			totalWords: 0,
@@ -169,26 +194,49 @@ export async function getBlogStats(): Promise<BlogStats> {
 			postsThisMonth: 0,
 			longestPost: null,
 			shortestPost: null,
+			// Note statistics
+			totalNotes: 0,
+			totalNotesWords: 0,
+			totalNotesReadingTime: 0,
+			averageWordsPerNote: 0,
+			averageReadingTimePerNote: 0,
+			notesByYear: {},
+			notesByMonth: {},
+			firstNoteDate: null,
+			lastNoteDate: null,
+			notesThisYear: 0,
+			notesThisMonth: 0,
+			longestNote: null,
+			shortestNote: null,
 		};
 	}
 
-	// Calculate word counts and reading times for all posts
+	// Calculate word counts and reading times for all posts - direct character counting
 	const postsWithStats = await Promise.all(
 		posts.map(async (post) => {
-			const { remarkPluginFrontmatter } = await render(post);
-			const readingTimeText = remarkPluginFrontmatter.readingTime as string;
+			// Get the raw markdown content (excluding frontmatter)
+			const { body } = post;
+			const content = body || '';
 
-			// Extract reading time in minutes from text like "3 min read"
-			const readingTimeMatch = readingTimeText.match(/(\d+)/);
-			const readingTimeMinutes = readingTimeMatch ? parseInt(readingTimeMatch[1]) : 0;
+			// Remove markdown syntax and count actual characters
+			const cleanContent = content
+				.replace(/```[\s\S]*?```/g, '') // Remove code blocks
+				.replace(/`[^`]*`/g, '') // Remove inline code
+				.replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+				.replace(/\[.*?\]\(.*?\)/g, '') // Remove links
+				.replace(/[#*_~`]/g, '') // Remove markdown formatting
+				.replace(/\s+/g, ' ') // Normalize whitespace
+				.trim();
 
-			// Estimate word count from reading time (average 200 words per minute)
-			const estimatedWords = readingTimeMinutes * 200;
+			// Count actual characters (works well for Chinese content)
+			const actualWords = cleanContent.length;
+			// For reading time: assume 300 characters per minute for Chinese content
+			const actualReadingMinutes = Math.max(Math.round(actualWords / 300), 1);
 
 			return {
 				post,
-				words: estimatedWords,
-				readingTime: readingTimeMinutes,
+				words: actualWords,
+				readingTime: actualReadingMinutes,
 			};
 		})
 	);
@@ -242,10 +290,90 @@ export async function getBlogStats(): Promise<BlogStats> {
 		id: sortedByWords[0].post.id,
 	} : null;
 
-	const shortestPost = sortedByWords[sortedByWords.length - 1] ? {
-		title: sortedByWords[sortedByWords.length - 1].post.data.title,
-		words: sortedByWords[sortedByWords.length - 1].words,
-		id: sortedByWords[sortedByWords.length - 1].post.id,
+	const shortestPostItem = sortedByWords[sortedByWords.length - 1];
+	const shortestPost = shortestPostItem ? {
+		title: shortestPostItem.post.data.title,
+		words: shortestPostItem.words,
+		id: shortestPostItem.post.id,
+	} : null;
+
+	// Calculate note statistics - direct character counting
+	const notesWithStats = await Promise.all(
+		notes.map(async (note) => {
+			// Get the raw markdown content (excluding frontmatter)
+			const { body } = note;
+			const content = body || '';
+
+			// Remove markdown syntax and count actual characters
+			const cleanContent = content
+				.replace(/```[\s\S]*?```/g, '') // Remove code blocks
+				.replace(/`[^`]*`/g, '') // Remove inline code
+				.replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+				.replace(/\[.*?\]\(.*?\)/g, '') // Remove links
+				.replace(/[#*_~`]/g, '') // Remove markdown formatting
+				.replace(/\s+/g, ' ') // Normalize whitespace
+				.trim();
+
+			// Count actual characters (works well for Chinese content)
+			const actualWords = cleanContent.length;
+			// For reading time: assume 300 characters per minute for Chinese content
+			const actualReadingMinutes = Math.max(Math.round(actualWords / 300), 1);
+
+			return {
+				note,
+				words: actualWords,
+				readingTime: actualReadingMinutes,
+			};
+		})
+	);
+
+	// Note basic statistics
+	const totalNotes = notes.length;
+	const totalNotesWords = notesWithStats.reduce((sum, { words }) => sum + words, 0);
+	const totalNotesReadingTime = notesWithStats.reduce((sum, { readingTime }) => sum + readingTime, 0);
+	const averageWordsPerNote = totalNotes > 0 ? totalNotesWords / totalNotes : 0;
+	const averageReadingTimePerNote = totalNotes > 0 ? totalNotesReadingTime / totalNotes : 0;
+
+	// Note date-based statistics
+	const sortedNotes = notes.sort((a, b) => a.data.publishDate.getTime() - b.data.publishDate.getTime());
+	const firstNoteDate = sortedNotes[0]?.data.publishDate || null;
+	const lastNoteDate = sortedNotes[sortedNotes.length - 1]?.data.publishDate || null;
+
+	// Current year and month note statistics
+	const notesThisYear = notes.filter(note => note.data.publishDate.getFullYear() === currentYear).length;
+	const notesThisMonth = notes.filter(note => {
+		const noteDate = note.data.publishDate;
+		return noteDate.getFullYear() === currentYear && noteDate.getMonth() === currentMonth;
+	}).length;
+
+	// Notes by year
+	const notesByYear = notes.reduce<Record<string, number>>((acc, note) => {
+		const year = note.data.publishDate.getFullYear().toString();
+		acc[year] = (acc[year] || 0) + 1;
+		return acc;
+	}, {});
+
+	// Notes by month (format: "YYYY-MM")
+	const notesByMonth = notes.reduce<Record<string, number>>((acc, note) => {
+		const date = note.data.publishDate;
+		const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+		acc[monthKey] = (acc[monthKey] || 0) + 1;
+		return acc;
+	}, {});
+
+	// Longest and shortest notes
+	const sortedNotesByWords = notesWithStats.sort((a, b) => b.words - a.words);
+	const longestNote = sortedNotesByWords[0] ? {
+		title: sortedNotesByWords[0].note.data.title,
+		words: sortedNotesByWords[0].words,
+		id: sortedNotesByWords[0].note.id,
+	} : null;
+
+	const shortestNoteItem = sortedNotesByWords[sortedNotesByWords.length - 1];
+	const shortestNote = shortestNoteItem ? {
+		title: shortestNoteItem.note.data.title,
+		words: shortestNoteItem.words,
+		id: shortestNoteItem.note.id,
 	} : null;
 
 	return {
@@ -263,6 +391,20 @@ export async function getBlogStats(): Promise<BlogStats> {
 		postsThisMonth,
 		longestPost,
 		shortestPost,
+		// Note statistics
+		totalNotes,
+		totalNotesWords,
+		totalNotesReadingTime,
+		averageWordsPerNote: Math.round(averageWordsPerNote),
+		averageReadingTimePerNote: Math.round(averageReadingTimePerNote * 10) / 10, // Round to 1 decimal
+		notesByYear,
+		notesByMonth,
+		firstNoteDate,
+		lastNoteDate,
+		notesThisYear,
+		notesThisMonth,
+		longestNote,
+		shortestNote,
 	};
 }
 
@@ -292,6 +434,6 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
 		.sort((a, b) => a.year - b.year || a.month - b.month)
 		.map(item => ({
 			...item,
-			monthName: monthNames[item.month],
+			monthName: monthNames[item.month] || 'Unknown',
 		}));
 }
