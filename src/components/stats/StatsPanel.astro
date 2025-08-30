@@ -34,6 +34,15 @@ const writingPeriodDays =
 					(1000 * 60 * 60 * 24),
 			)
 		: null;
+
+// Calculate notes writing period
+const notesWritingPeriodDays =
+	stats.firstNoteDate && stats.lastNoteDate
+		? Math.floor(
+				(stats.lastNoteDate.getTime() - stats.firstNoteDate.getTime()) /
+					(1000 * 60 * 60 * 24),
+			)
+		: null;
 ---
 
 <div class="space-y-8">
@@ -318,6 +327,59 @@ const writingPeriodDays =
 			Detailed Information
 		</h3>
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+			<!-- Notes Writing Journey -->
+			{
+				stats.firstNoteDate && stats.lastNoteDate && (
+					<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6">
+						<h4 class="font-semibold text-gray-900 dark:text-white mb-3">
+							Notes Writing Journey
+						</h4>
+						<div class="space-y-2 text-sm">
+							<div class="flex justify-between">
+								<span class="text-gray-600 dark:text-gray-400">
+									First note:
+								</span>
+								<span class="font-medium">
+									{getFormattedDate(stats.firstNoteDate)}
+								</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-gray-600 dark:text-gray-400">
+									Latest note:
+								</span>
+								<span class="font-medium">
+									{getFormattedDate(stats.lastNoteDate)}
+								</span>
+							</div>
+							{notesWritingPeriodDays && (
+								<div class="flex justify-between">
+									<span class="text-gray-600 dark:text-gray-400">
+										Writing period:
+									</span>
+									<span class="font-medium">
+										{notesWritingPeriodDays} days
+									</span>
+								</div>
+							)}
+							{notesWritingPeriodDays && (
+								<div class="flex justify-between">
+									<span class="text-gray-600 dark:text-gray-400">
+										Average frequency:
+									</span>
+									<span class="font-medium">
+										{Math.round(
+											notesWritingPeriodDays /
+												stats.totalNotes,
+										)}{" "}
+										days/note
+									</span>
+								</div>
+							)}
+						</div>
+					</div>
+				)
+			}
+
 			<!-- Note Records -->
 			{
 				stats.totalNotes > 0 && (
