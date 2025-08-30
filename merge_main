@@ -1,3 +1,5 @@
+sh p
 git checkout main
 git merge origin/dev
+sh p
 git checkout dev
