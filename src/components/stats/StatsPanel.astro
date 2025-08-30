@@ -115,85 +115,6 @@ const writingPeriodDays =
 		</div>
 	</section>
 
-	<!-- Notes Statistics -->
-	{
-		stats.totalNotes > 0 && (
-			<section>
-				<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-					Notes Statistics
-				</h2>
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-					<StatCard
-						title="Total Notes"
-						value={stats.totalNotes}
-						subtitle={`${stats.notesThisYear} this year`}
-						icon="📝"
-						href="/notes/"
-					/>
-
-					<StatCard
-						title="Total Words"
-						value={formatNumber(stats.totalNotesWords)}
-						subtitle={`~${Math.round(stats.totalNotesWords / 250)} pages`}
-						icon="📖"
-					/>
-
-					<StatCard
-						title="Reading Time"
-						value={`${Math.round(stats.totalNotesReadingTime)} min`}
-						subtitle={`~${Math.round(stats.totalNotesReadingTime / 60)} hours`}
-						icon="⏱️"
-					/>
-
-					<StatCard
-						title="Average Length"
-						value={`${stats.averageWordsPerNote} words`}
-						subtitle={`${stats.averageReadingTimePerNote} min read`}
-						icon="📊"
-					/>
-				</div>
-			</section>
-		)
-	}
-
-	<!-- Notes Activity Stats -->
-	{
-		stats.totalNotes > 0 && (
-			<section>
-				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-					Notes Activity
-				</h3>
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-					<StatCard
-						title="This Month"
-						value={stats.notesThisMonth}
-						subtitle="notes published"
-						icon="📅"
-					/>
-
-					<StatCard
-						title="This Year"
-						value={stats.notesThisYear}
-						subtitle="notes published"
-						icon="🗓️"
-					/>
-
-					{stats.lastNoteDate && (
-						<StatCard
-							title="Last Note"
-							value={`${Math.floor(
-								(Date.now() - stats.lastNoteDate.getTime()) /
-									(1000 * 60 * 60 * 24),
-							)} days ago`}
-							subtitle={getFormattedDate(stats.lastNoteDate)}
-							icon="🕒"
-						/>
-					)}
-				</div>
-			</section>
-		)
-	}
-
 	<!-- Charts and Visual Data -->
 	<section class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 		<MonthlyChart data={monthlyStats} />
@@ -307,7 +228,96 @@ const writingPeriodDays =
 					}
 				</div>
 			</div>
+		</div>
+	</section>
 
+	<hr class="border-dashed mb-8" />
+
+	<!-- Notes Statistics -->
+	{
+		stats.totalNotes > 0 && (
+			<section>
+				<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+					Notes Statistics
+				</h2>
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+					<StatCard
+						title="Total Notes"
+						value={stats.totalNotes}
+						subtitle={`${stats.notesThisYear} this year`}
+						icon="📝"
+						href="/notes/"
+					/>
+
+					<StatCard
+						title="Total Words"
+						value={formatNumber(stats.totalNotesWords)}
+						subtitle={`~${Math.round(stats.totalNotesWords / 250)} pages`}
+						icon="📖"
+					/>
+
+					<StatCard
+						title="Reading Time"
+						value={`${Math.round(stats.totalNotesReadingTime)} min`}
+						subtitle={`~${Math.round(stats.totalNotesReadingTime / 60)} hours`}
+						icon="⏱️"
+					/>
+
+					<StatCard
+						title="Average Length"
+						value={`${stats.averageWordsPerNote} words`}
+						subtitle={`${stats.averageReadingTimePerNote} min read`}
+						icon="📊"
+					/>
+				</div>
+			</section>
+		)
+	}
+
+	<!-- Notes Activity Stats -->
+	{
+		stats.totalNotes > 0 && (
+			<section>
+				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+					Notes Activity
+				</h3>
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+					<StatCard
+						title="This Month"
+						value={stats.notesThisMonth}
+						subtitle="notes published"
+						icon="📅"
+					/>
+
+					<StatCard
+						title="This Year"
+						value={stats.notesThisYear}
+						subtitle="notes published"
+						icon="🗓️"
+					/>
+
+					{stats.lastNoteDate && (
+						<StatCard
+							title="Last Note"
+							value={`${Math.floor(
+								(Date.now() - stats.lastNoteDate.getTime()) /
+									(1000 * 60 * 60 * 24),
+							)} days ago`}
+							subtitle={getFormattedDate(stats.lastNoteDate)}
+							icon="🕒"
+						/>
+					)}
+				</div>
+			</section>
+		)
+	}
+
+	<!-- Detailed Stats -->
+	<section>
+		<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+			Detailed Information
+		</h3>
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
 			<!-- Note Records -->
 			{
 				stats.totalNotes > 0 && (
