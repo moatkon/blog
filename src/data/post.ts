@@ -173,10 +173,13 @@ export interface MonthlyStats {
 
 /** Calculate comprehensive blog statistics */
 export async function getBlogStats(): Promise<BlogStats> {
-	const posts = await getAllPosts();
+	// Get all posts but filter out drafts for statistics (regardless of environment)
+	const allPosts = await getCollection("post");
+	const posts = allPosts.filter(({ data }) => !data.draft);
 
-	// Get notes data
-	const notes = await getAllNotes();
+	// Get all notes but filter out drafts for statistics (regardless of environment)
+	const allNotes = await getCollection("note");
+	const notes = allNotes.filter(({ data }) => !(data as any).draft);
 
 	if (posts.length === 0 && notes.length === 0) {
 		return {
