@@ -17,3 +17,7 @@
 ### 优化
 #### 20250821
 - 网站配色调整,调整为Moatkon主题色
+
+
+### Build
+指定时区构建: TZ=Asia/Shanghai npm run build
