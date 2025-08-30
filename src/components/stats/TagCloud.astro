@@ -5,7 +5,7 @@ export interface Props {
 	maxTags?: number;
 }
 
-const { tags, title = "Popular Tags", maxTags = 20 } = Astro.props;
+const { tags, title = "Posts Popular Tags", maxTags = 20 } = Astro.props;
 
 // Get top tags and calculate font sizes
 const topTags = tags.slice(0, maxTags);
