@@ -83,6 +83,31 @@ function calculateTagSimilarity(post1: CollectionEntry<"post">, post2: Collectio
 	return intersection.size / union.size;
 }
 
+/** Get adjacent posts (previous and next) for navigation
+ *  Note: This function doesn't filter draft posts, pass it the result of getAllPosts above to do so.
+ */
+export function getAdjacentPosts(
+	currentPost: CollectionEntry<"post">,
+	allPosts: CollectionEntry<"post">[]
+): { prevPost: CollectionEntry<"post"> | null; nextPost: CollectionEntry<"post"> | null } {
+	// Sort posts by publish date (newest first)
+	const sortedPosts = allPosts.sort((a, b) =>
+		b.data.publishDate.getTime() - a.data.publishDate.getTime()
+	);
+
+	const currentIndex = sortedPosts.findIndex(post => post.id === currentPost.id);
+
+	if (currentIndex === -1) {
+		return { prevPost: null, nextPost: null };
+	}
+
+	// Previous post is newer (index - 1), next post is older (index + 1)
+	const prevPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
+	const nextPost = currentIndex < sortedPosts.length - 1 ? sortedPosts[currentIndex + 1] : null;
+
+	return { prevPost, nextPost };
+}
+
 /** Get related posts for a given post based on tag similarity
  *  Note: This function doesn't filter draft posts, pass it the result of getAllPosts above to do so.
  *  */

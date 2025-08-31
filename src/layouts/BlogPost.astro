@@ -4,9 +4,11 @@ import { type CollectionEntry, render } from "astro:content";
 import Masthead from "@/components/blog/Masthead.astro";
 import TOC from "@/components/blog/TOC.astro";
 import RelatedPosts from "@/components/blog/RelatedPosts.astro";
+import PostNavigation from "@/components/blog/PostNavigation.astro";
 import WebMentions from "@/components/blog/webmentions/index.astro";
 import Giscus from "@/components/blog/Giscus.astro";
 import ReadingProgress from "@/components/ReadingProgress.astro";
+import { getAllPosts, getAdjacentPosts } from "@/data/post";
 import { giscusConfig } from "@/site.config";
 
 import BaseLayout from "./Base.astro";
@@ -21,6 +23,10 @@ const socialImage = ogImage ?? `/og-image/${post.id}.png`;
 const articleDate = updatedDate?.toISOString() ?? publishDate.toISOString();
 const { headings, remarkPluginFrontmatter } = await render(post);
 const readingTime: string = remarkPluginFrontmatter.readingTime;
+
+// Get adjacent posts for navigation
+const allPosts = await getAllPosts();
+const { prevPost, nextPost } = getAdjacentPosts(post, allPosts);
 ---
 
 <BaseLayout
@@ -46,6 +52,7 @@ const readingTime: string = remarkPluginFrontmatter.readingTime;
 			</div>
 		</div>
 	</article>
+	<PostNavigation prevPost={prevPost} nextPost={nextPost} />
 	<RelatedPosts currentPost={post} />
 	<Giscus {...giscusConfig} />
 	<button
