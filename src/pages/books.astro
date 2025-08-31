@@ -66,7 +66,7 @@ function generateStars(rating: number | undefined) {
 	<div class="prose prose-sm prose-cactus max-w-none">
 		<h1 class="title mb-6">📚 读书记录</h1>
 
-		<p class="mb-8 text-gray-600">
+		<p class="mb-8 text-global-text/70">
 			记录我读过的书籍，包括阅读时间、评分和读书笔记。点击书名可查看详细笔记。
 		</p>
 
@@ -74,31 +74,33 @@ function generateStars(rating: number | undefined) {
 		{
 			readingBooks.length > 0 && (
 				<div class="mb-8">
-					<h3 class="text-lg font-semibold mb-3">📖 正在阅读</h3>
+					<h3 class="text-lg font-semibold mb-3 text-global-text">
+						📖 正在阅读
+					</h3>
 					<div class="space-y-4">
 						{readingBooks.map((book) => (
-							<div class="border-l-4 border-blue-500 pl-4 bg-blue-50 p-3 rounded-r">
+							<div class="border-l-4 border-blue-500 pl-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-r">
 								<div class="flex justify-between items-start mb-2">
-									<h4 class="font-medium text-gray-900">
+									<h4 class="font-medium text-global-text">
 										<a
 											href={`/books/${book.id}/`}
-											class="hover:underline"
+											class="hover:underline hover:text-accent"
 										>
 											《{book.data.title}》
 										</a>
 									</h4>
-									<span class="text-sm text-gray-500">
+									<span class="text-sm text-global-text/60">
 										开始时间:{" "}
 										{formatDate(book.data.startDate)}
 									</span>
 								</div>
-								<p class="text-sm text-gray-600 mb-2">
+								<p class="text-sm text-global-text/70 mb-2">
 									作者: {book.data.author}
 								</p>
 								{book.data.tags.length > 0 && (
 									<div class="flex flex-wrap gap-1 mb-2">
 										{book.data.tags.map((tag) => (
-											<span class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">
+											<span class="text-xs bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
 												{tag}
 											</span>
 										))}
@@ -117,29 +119,29 @@ function generateStars(rating: number | undefined) {
 				.sort((a, b) => Number(b) - Number(a))
 				.map((year) => (
 					<div class="mb-8">
-						<h2 class="text-xl font-bold mb-4 border-b border-gray-300 pb-2">
+						<h2 class="text-xl font-bold mb-4 border-b border-global-text/20 pb-2 text-global-text">
 							{year}年
 						</h2>
 						<div class="space-y-4">
 							{(booksByYear[Number(year)] || []).map((book) => (
-								<div class="border-l-4 border-green-500 pl-4 bg-green-50 p-3 rounded-r">
+								<div class="border-l-4 border-green-500 pl-4 bg-green-50 dark:bg-green-900/20 p-3 rounded-r">
 									<div class="flex justify-between items-start mb-2">
-										<h4 class="font-medium text-gray-900">
+										<h4 class="font-medium text-global-text">
 											<a
 												href={`/books/${book.id}/`}
-												class="hover:underline"
+												class="hover:underline hover:text-accent"
 											>
 												《{book.data.title}》
 											</a>
 										</h4>
 										<div class="text-right">
-											<div class="text-sm text-gray-500">
+											<div class="text-sm text-global-text/60">
 												{formatDate(
 													book.data.finishDate,
 												)}
 											</div>
 											{book.data.rating && (
-												<div class="text-yellow-500">
+												<div class="text-yellow-500 dark:text-yellow-400">
 													{generateStars(
 														book.data.rating,
 													)}
@@ -147,13 +149,13 @@ function generateStars(rating: number | undefined) {
 											)}
 										</div>
 									</div>
-									<p class="text-sm text-gray-600 mb-2">
+									<p class="text-sm text-global-text/70 mb-2">
 										作者: {book.data.author}
 									</p>
 									{book.data.tags.length > 0 && (
 										<div class="flex flex-wrap gap-1">
 											{book.data.tags.map((tag) => (
-												<span class="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+												<span class="text-xs bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-1 rounded">
 													{tag}
 												</span>
 											))}
@@ -167,77 +169,98 @@ function generateStars(rating: number | undefined) {
 		}
 
 		<!-- 统计信息 -->
-		<div class="mt-12 p-4 bg-gray-100 rounded-lg">
-			<h3 class="text-lg font-semibold mb-3">📊 阅读统计</h3>
+		<div
+			class="mt-12 p-4 bg-global-text/5 rounded-lg border border-global-text/10"
+		>
+			<h3 class="text-lg font-semibold mb-3 text-global-text">
+				📊 阅读统计
+			</h3>
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
 				<div>
-					<div class="text-2xl font-bold text-blue-600">
+					<div
+						class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+					>
 						{currentYearCount}
 					</div>
-					<div class="text-sm text-gray-600">{currentYear}年已读</div>
+					<div class="text-sm text-global-text/70">
+						{currentYear}年已读
+					</div>
 				</div>
 				<div>
-					<div class="text-2xl font-bold text-green-600">
+					<div
+						class="text-2xl font-bold text-green-600 dark:text-green-400"
+					>
 						{totalCompleted}
 					</div>
-					<div class="text-sm text-gray-600">总计已读</div>
+					<div class="text-sm text-global-text/70">总计已读</div>
 				</div>
 				<div>
-					<div class="text-2xl font-bold text-orange-600">
+					<div
+						class="text-2xl font-bold text-orange-600 dark:text-orange-400"
+					>
 						{currentlyReading}
 					</div>
-					<div class="text-sm text-gray-600">正在阅读</div>
+					<div class="text-sm text-global-text/70">正在阅读</div>
 				</div>
 				<div>
-					<div class="text-2xl font-bold text-purple-600">
+					<div
+						class="text-2xl font-bold text-purple-600 dark:text-purple-400"
+					>
 						{Object.keys(booksByYear).length}
 					</div>
-					<div class="text-sm text-gray-600">阅读年份</div>
+					<div class="text-sm text-global-text/70">阅读年份</div>
 				</div>
 			</div>
 		</div>
 
 		<!-- 阅读目标 -->
 		<div
-			class="mt-8 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400"
+			class="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-yellow-400"
 		>
-			<h3 class="text-lg font-semibold mb-2">
+			<h3 class="text-lg font-semibold mb-2 text-global-text">
 				🎯 {currentYear}年阅读目标
 			</h3>
-			<p class="text-gray-700">
+			<p class="text-global-text/80">
 				今年计划阅读 <strong>{yearlyGoal}</strong> 本书
 			</p>
-			<div class="mt-2 bg-gray-200 rounded-full h-2">
+			<div class="mt-2 bg-global-text/20 rounded-full h-2">
 				<div
-					class="bg-yellow-400 h-2 rounded-full"
+					class="bg-yellow-400 dark:bg-yellow-500 h-2 rounded-full"
 					style={`width: ${progress}%`}
 				>
 				</div>
 			</div>
-			<p class="text-sm text-gray-600 mt-1">
+			<p class="text-sm text-global-text/70 mt-1">
 				进度: {currentYearCount}/{yearlyGoal} ({progress}%)
 			</p>
 		</div>
 
 		<!-- 使用说明 -->
-		<div class="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-			<h3 class="text-lg font-semibold mb-2">📝 如何添加新书</h3>
+		<div
+			class="mt-8 p-4 bg-global-text/5 rounded-lg border border-global-text/10"
+		>
+			<h3 class="text-lg font-semibold mb-2 text-global-text">
+				📝 如何添加新书
+			</h3>
 			<ol
-				class="text-sm text-gray-700 space-y-2 list-decimal list-inside"
+				class="text-sm text-global-text/80 space-y-2 list-decimal list-inside"
 			>
 				<li>
-					在 <code>src/content/book/</code> 目录下创建新的 <code
-						>.md</code
+					在 <code class="bg-global-text/10 px-1 rounded"
+						>src/content/book/</code
+					> 目录下创建新的 <code
+						class="bg-global-text/10 px-1 rounded">.md</code
 					> 文件
 				</li>
 				<li>使用 frontmatter 设置书籍信息（标题、作者、状态等）</li>
 				<li>在 Markdown 正文中写下你的读书笔记和感想</li>
 				<li>保存文件后，页面会自动更新显示新书籍</li>
 			</ol>
-			<p class="text-sm text-gray-600 mt-3">
-				<strong>状态说明</strong>: <code>reading</code> = 正在阅读, <code
-					>completed</code
-				> = 已完成, <code>abandoned</code> = 放弃阅读
+			<p class="text-sm text-global-text/70 mt-3">
+				<strong>状态说明</strong>:
+				<code class="bg-global-text/10 px-1 rounded">reading</code> = 正在阅读,
+				<code class="bg-global-text/10 px-1 rounded">completed</code> = 已完成,
+				<code class="bg-global-text/10 px-1 rounded">abandoned</code> = 放弃阅读
 			</p>
 		</div>
 	</div>
