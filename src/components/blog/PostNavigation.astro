@@ -10,75 +10,155 @@ interface Props {
 const { prevPost, nextPost } = Astro.props;
 ---
 
-{(prevPost || nextPost) && (
-	<nav class="mt-16 border-t border-zinc-200 pt-8 dark:border-zinc-700" aria-label="文章导航">
-		<div class="flex flex-col gap-4 sm:flex-row sm:justify-between">
-			{prevPost ? (
-				<a 
-					href={`/posts/${prevPost.id}/`}
-					class="group flex flex-1 items-center gap-3 rounded-lg border border-zinc-200 p-4 transition-all hover:border-accent hover:bg-accent/5 dark:border-zinc-700 dark:hover:border-accent dark:hover:bg-accent/10"
-				>
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 transition-colors group-hover:bg-accent/20 dark:bg-zinc-800">
-						<Icon 
-							name="mdi:chevron-left" 
-							class="h-5 w-5 text-zinc-600 transition-colors group-hover:text-accent dark:text-zinc-400" 
-						/>
-					</div>
-					<div class="flex-1 text-left">
-						<div class="text-xs text-zinc-500 dark:text-zinc-400">上一篇</div>
-						<div class="line-clamp-2 font-medium text-zinc-900 transition-colors group-hover:text-accent dark:text-zinc-100">
-							{prevPost.data.title}
+{
+	(prevPost || nextPost) && (
+		<nav class="mt-12 mb-8" aria-label="文章导航">
+			<div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
+				{prevPost ? (
+					<a
+						href={`/posts/${prevPost.id}/`}
+						class="group flex flex-1 items-center gap-4 rounded-lg border border-zinc-200/60 bg-gradient-to-r from-zinc-50/80 to-zinc-50/40 p-5 transition-all duration-200 hover:border-accent hover:from-accent/5 hover:to-accent/10 hover:shadow-lg hover:-translate-y-0.5 dark:border-zinc-700/60 dark:from-zinc-800/50 dark:to-zinc-800/20 dark:hover:border-accent dark:hover:from-accent/10 dark:hover:to-accent/5"
+					>
+						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-md transition-all duration-200 group-hover:bg-accent/15 group-hover:shadow-lg group-hover:scale-110 dark:bg-zinc-700/90 dark:group-hover:bg-accent/25">
+							<Icon
+								name="mdi:chevron-left"
+								class="h-6 w-6 text-zinc-600 transition-all duration-200 group-hover:text-accent group-hover:-translate-x-0.5 dark:text-zinc-300 dark:group-hover:text-accent"
+							/>
 						</div>
-					</div>
-				</a>
-			) : (
-				<div class="flex-1"></div>
-			)}
+						<div class="flex-1 min-w-0">
+							<div class="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2 flex items-center gap-1">
+								<span>上一篇</span>
+								<span class="text-zinc-400 dark:text-zinc-500">
+									←
+								</span>
+							</div>
+							<div class="line-clamp-2 text-base font-semibold text-zinc-900 transition-colors duration-200 group-hover:text-accent dark:text-zinc-100 dark:group-hover:text-accent leading-tight">
+								{prevPost.data.title}
+							</div>
+						</div>
+					</a>
+				) : (
+					<div class="flex-1" />
+				)}
 
-			{nextPost ? (
-				<a 
-					href={`/posts/${nextPost.id}/`}
-					class="group flex flex-1 items-center gap-3 rounded-lg border border-zinc-200 p-4 transition-all hover:border-accent hover:bg-accent/5 dark:border-zinc-700 dark:hover:border-accent dark:hover:bg-accent/10"
-				>
-					<div class="flex-1 text-right">
-						<div class="text-xs text-zinc-500 dark:text-zinc-400">下一篇</div>
-						<div class="line-clamp-2 font-medium text-zinc-900 transition-colors group-hover:text-accent dark:text-zinc-100">
-							{nextPost.data.title}
+				{nextPost ? (
+					<a
+						href={`/posts/${nextPost.id}/`}
+						class="group flex flex-1 items-center gap-4 rounded-lg border border-zinc-200/60 bg-gradient-to-l from-zinc-50/80 to-zinc-50/40 p-5 transition-all duration-200 hover:border-accent hover:from-accent/5 hover:to-accent/10 hover:shadow-lg hover:-translate-y-0.5 dark:border-zinc-700/60 dark:from-zinc-800/50 dark:to-zinc-800/20 dark:hover:border-accent dark:hover:from-accent/10 dark:hover:to-accent/5"
+					>
+						<div class="flex-1 min-w-0 text-right">
+							<div class="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2 flex items-center justify-end gap-1">
+								<span class="text-zinc-400 dark:text-zinc-500">
+									→
+								</span>
+								<span>下一篇</span>
+							</div>
+							<div class="line-clamp-2 text-base font-semibold text-zinc-900 transition-colors duration-200 group-hover:text-accent dark:text-zinc-100 dark:group-hover:text-accent leading-tight">
+								{nextPost.data.title}
+							</div>
 						</div>
-					</div>
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 transition-colors group-hover:bg-accent/20 dark:bg-zinc-800">
-						<Icon 
-							name="mdi:chevron-right" 
-							class="h-5 w-5 text-zinc-600 transition-colors group-hover:text-accent dark:text-zinc-400" 
-						/>
-					</div>
-				</a>
-			) : (
-				<div class="flex-1"></div>
-			)}
-		</div>
-	</nav>
-)}
+						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-md transition-all duration-200 group-hover:bg-accent/15 group-hover:shadow-lg group-hover:scale-110 dark:bg-zinc-700/90 dark:group-hover:bg-accent/25">
+							<Icon
+								name="mdi:chevron-right"
+								class="h-6 w-6 text-zinc-600 transition-all duration-200 group-hover:text-accent group-hover:translate-x-0.5 dark:text-zinc-300 dark:group-hover:text-accent"
+							/>
+						</div>
+					</a>
+				) : (
+					<div class="flex-1" />
+				)}
+			</div>
+		</nav>
+	)
+}
 
 <style>
-	/* 确保在小屏幕上也有良好的显示效果 */
-	@media (max-width: 640px) {
-		.line-clamp-2 {
-			display: -webkit-box;
-			-webkit-line-clamp: 2;
-			-webkit-box-orient: vertical;
-			overflow: hidden;
-		}
+	/* 确保 line-clamp 在所有情况下都能正常工作 */
+	.line-clamp-2 {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		word-break: break-word;
+		hyphens: auto;
 	}
-	
+
 	/* 为减少动画偏好的用户优化 */
 	@media (prefers-reduced-motion: reduce) {
 		.group {
 			transition: none;
 		}
-		
+
 		.group * {
 			transition: none;
 		}
 	}
+
+	/* 确保导航在小屏幕上的可用性 */
+	@media (max-width: 640px) {
+		nav {
+			margin-top: 2rem;
+			margin-bottom: 1.5rem;
+		}
+
+		.group {
+			padding: 1rem;
+		}
+	}
+
+	/* 高对比度模式支持 */
+	@media (prefers-contrast: high) {
+		.group {
+			border-width: 2px;
+		}
+
+		.group:hover {
+			border-color: var(--color-accent);
+			background-color: transparent;
+		}
+	}
 </style>
+
+<script>
+	// 键盘导航支持
+	document.addEventListener("keydown", (e) => {
+		// 确保用户不在输入框中
+		if (
+			e.target instanceof HTMLInputElement ||
+			e.target instanceof HTMLTextAreaElement
+		) {
+			return;
+		}
+
+		// 确保没有修饰键被按下
+		if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) {
+			return;
+		}
+
+		const prevLink = document.querySelector(
+			'nav[aria-label="文章导航"] a[href*="posts/"]:first-of-type',
+		) as HTMLAnchorElement;
+		const nextLink = document.querySelector(
+			'nav[aria-label="文章导航"] a[href*="posts/"]:last-of-type',
+		) as HTMLAnchorElement;
+
+		switch (e.key) {
+			case "ArrowLeft":
+				if (prevLink && prevLink.href.includes("posts/")) {
+					e.preventDefault();
+					prevLink.click();
+				}
+				break;
+			case "ArrowRight":
+				if (
+					nextLink &&
+					nextLink.href.includes("posts/") &&
+					nextLink !== prevLink
+				) {
+					e.preventDefault();
+					nextLink.click();
+				}
+				break;
+		}
+	});
+</script>
