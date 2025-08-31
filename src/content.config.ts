@@ -56,4 +56,28 @@ const tag = defineCollection({
 	}),
 });
 
-export const collections = { post, note, tag };
+const book = defineCollection({
+	loader: glob({ base: "./src/content/book", pattern: "**/*.{md,mdx}" }),
+	schema: baseSchema.extend({
+		author: z.string(),
+		isbn: z.string().optional(),
+		rating: z.number().min(1).max(5).optional(),
+		status: z.enum(["reading", "completed", "abandoned"]).default("completed"),
+		startDate: z
+			.string()
+			.or(z.date())
+			.transform((val) => new Date(val))
+			.optional(),
+		finishDate: z
+			.string()
+			.or(z.date())
+			.transform((val) => new Date(val))
+			.optional(),
+		tags: z.array(z.string()).default([]).transform(removeDupsAndLowerCase),
+		coverImage: z.string().optional(),
+		publisher: z.string().optional(),
+		pages: z.number().optional(),
+	}),
+});
+
+export const collections = { post, note, tag, book };
