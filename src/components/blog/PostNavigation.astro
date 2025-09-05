@@ -19,12 +19,12 @@ const { prevPost, nextPost } = Astro.props;
 						href={`/posts/${prevPost.id}/`}
 						class="group flex flex-1 items-center gap-4 rounded-lg border border-zinc-200/60 bg-gradient-to-r from-zinc-50/80 to-zinc-50/40 p-5 transition-all duration-200 hover:border-accent hover:from-accent/5 hover:to-accent/10 hover:shadow-lg  dark:border-zinc-700/60 dark:from-zinc-800/50 dark:to-zinc-800/20 dark:hover:border-accent dark:hover:from-accent/10 dark:hover:to-accent/5"
 					>
-						<div class="flex h-12 w-12 items-center justify-center rounded-full  border border-zinc-200/60 transition-all duration-200 group-hover:bg-accent/15 group-hover:shadow-lg group-hover:scale-110 dark:bg-zinc-700/90 dark:group-hover:bg-accent/25">
+						{/*<div class="flex h-12 w-12 items-center justify-center rounded-full  border border-zinc-200/60 transition-all duration-200 group-hover:bg-accent/15 group-hover:shadow-lg group-hover:scale-110 dark:bg-zinc-700/90 dark:group-hover:bg-accent/25">
 							<Icon
 								name="mdi:chevron-left"
 								class="h-6 w-6 text-zinc-600 transition-all duration-200 group-hover:text-accent dark:text-zinc-300 dark:group-hover:text-accent"
 							/>
-						</div>
+						</div>*/}
 						<div class="flex-1 min-w-0">
 							<div class="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2 flex items-center gap-1">
 								<span>上一篇</span>
@@ -53,12 +53,12 @@ const { prevPost, nextPost } = Astro.props;
 								{nextPost.data.title}
 							</div>
 						</div>
-						<div class="flex h-12 w-12 items-center justify-center rounded-full  border border-zinc-200/60 transition-all duration-200 group-hover:bg-accent/15 group-hover:shadow-lg group-hover:scale-110 dark:bg-zinc-700/90 dark:group-hover:bg-accent/25">
+						{/*<div class="flex h-12 w-12 items-center justify-center rounded-full  border border-zinc-200/60 transition-all duration-200 group-hover:bg-accent/15 group-hover:shadow-lg group-hover:scale-110 dark:bg-zinc-700/90 dark:group-hover:bg-accent/25">
 							<Icon
 								name="mdi:chevron-right"
 								class="h-6 w-6 text-zinc-600 transition-all duration-200 group-hover:text-accent dark:text-zinc-300 dark:group-hover:text-accent"
 							/>
-						</div>
+						</div>*/}
 					</a>
 				) : (
 					<div class="flex-1" />
