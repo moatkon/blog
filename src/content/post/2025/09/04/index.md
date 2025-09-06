@@ -2,7 +2,7 @@
 title: "PS5,I want to buy"
 description: "PS5,I want to buy"
 publishDate: "2025-09-04 22:37:48"
-draft: true
+draft: false
 tags: ["记录"]
 #updatedDate: 22 Jan 2024
 ---
