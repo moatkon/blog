@@ -1,6 +1,6 @@
 ---
-title: "PS5"
-description: "PS5"
+title: "PS5,I want to buy"
+description: "PS5,I want to buy"
 publishDate: "2025-09-04 22:37:48"
 draft: true
 tags: ["记录"]
