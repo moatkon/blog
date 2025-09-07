@@ -20,22 +20,30 @@ const last12Months = data.slice(-12);
 	
 	{last12Months.length > 0 ? (
 		<div class="space-y-4">
+			<!-- Debug info -->
+			{/* <div class="text-xs text-gray-500 mb-2">
+				Max: {maxCount} | Data: {last12Months.map(m => {
+					const heightPercent = m.count > 0 ? Math.max((m.count / maxCount) * 100, 3) : 1;
+					const heightPx = Math.round((heightPercent / 100) * 128);
+					return `${m.monthName}:${m.count}(${heightPx}px)`;
+				}).join(', ')}
+			</div> */}
+
 			<!-- Chart bars -->
 			<div class="flex items-end justify-between h-32 gap-1">
-				{last12Months.map((month: MonthlyStats) => (
-					<div class="flex-1 flex flex-col items-center">
-						<div 
-							class="w-full bg-accent/20 hover:bg-accent/30 transition-colors rounded-t"
-							style={`height: ${(month.count / maxCount) * 100}%`}
-							title={`${month.monthName} ${month.year}: ${month.count} posts`}
-						>
-							<div 
-								class="w-full bg-accent rounded-t"
-								style={`height: ${month.count > 0 ? '100%' : '0%'}`}
+				{last12Months.map((month: MonthlyStats) => {
+					const heightPercent = month.count > 0 ? Math.max((month.count / maxCount) * 100, 3) : 1;
+					const heightPx = Math.round((heightPercent / 100) * 128); // 128px = h-32
+					return (
+						<div class="flex-1 flex flex-col items-center">
+							<div
+								class="w-full chart-bar rounded-t"
+								style={`height: ${heightPx}px; background-color: var(--color-accent);`}
+								title={`${month.monthName} ${month.year}: ${month.count} posts (${heightPercent.toFixed(1)}% = ${heightPx}px)`}
 							></div>
 						</div>
-					</div>
-				))}
+					);
+				})}
 			</div>
 			
 			<!-- Month labels -->
@@ -67,8 +75,15 @@ const last12Months = data.slice(-12);
 </div>
 
 <style>
-	/* Ensure minimum height for bars with data */
-	.bg-accent {
-		min-height: 4px;
+	.chart-bar {
+		transition: all 0.2s ease;
+		/* Force override any inherited styles */
+		min-height: unset !important;
+		max-height: unset !important;
+		flex: none !important;
+	}
+
+	.chart-bar:hover {
+		opacity: 0.8;
 	}
 </style>
