@@ -1,0 +1,24 @@
+---
+import StatsPanel from "@/components/stats/StatsPanel.astro";
+import PageLayout from "@/layouts/Base.astro";
+
+const meta = {
+	title: "Naming Convention",
+	description:
+		"Naming Convention",
+};
+---
+
+<PageLayout meta={meta}>
+	<div class="prose prose-sm prose-cactus max-w-none">
+		<h1 class="title mb-6">Naming Convention</h1>
+		<div class="prose prose-sm prose-cactus max-w-none">
+			<h3>周报命名规范:</h3>
+			<ul class="list-inside list-disc" role="list">
+				<li>
+					<strong>YYYY W{"{num}"}</strong>: 使用场景:周报。举例: <strong>2025 W37</strong> 表示2025年第37周
+				</li>
+			</ul>
+		</div>
+	</div>
+</PageLayout>
