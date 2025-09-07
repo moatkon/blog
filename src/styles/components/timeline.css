@@ -1,0 +1,211 @@
+/* 垂直时间线样式 */
+.timeline-container {
+	position: relative;
+	padding-left: 0;
+}
+
+/* 时间线主线 */
+.timeline-line {
+	background: linear-gradient(
+		to bottom,
+		transparent 0%,
+		var(--color-accent) 8%,
+		var(--color-accent) 92%,
+		transparent 100%
+	);
+	opacity: 0.25;
+	border-radius: 1px;
+}
+
+/* 时间线列表 */
+.timeline-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+/* 时间线项目 */
+.timeline-item {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: 1.5rem;
+	margin-bottom: 3rem;
+	opacity: 0;
+	transform: translateY(20px);
+	animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* 为每个项目添加延迟动画 */
+.timeline-item:nth-child(1) { animation-delay: 0.1s; }
+.timeline-item:nth-child(2) { animation-delay: 0.2s; }
+.timeline-item:nth-child(3) { animation-delay: 0.3s; }
+.timeline-item:nth-child(4) { animation-delay: 0.4s; }
+.timeline-item:nth-child(5) { animation-delay: 0.5s; }
+.timeline-item:nth-child(n+6) { animation-delay: 0.6s; }
+
+/* 入场动画 */
+@keyframes fadeInUp {
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* 时间线节点 */
+.timeline-node {
+	position: relative;
+	margin-top: 0.75rem; /* 与内容顶部对齐 */
+	flex-shrink: 0;
+}
+
+.timeline-node::before {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 1.5rem;
+	height: 1.5rem;
+	background: var(--color-accent);
+	border-radius: 50%;
+	opacity: 0.1;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timeline-node .timeline-dot {
+	position: relative;
+	z-index: 2;
+	background: var(--color-accent);
+	border: 3px solid var(--color-global-bg);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 悬停效果 */
+.timeline-item:hover .timeline-node::before {
+	opacity: 0.25;
+	transform: translate(-50%, -50%) scale(1.3);
+}
+
+.timeline-item:hover .timeline-node .timeline-dot {
+	transform: scale(1.15);
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+	background: var(--color-accent-2);
+}
+
+/* 时间线整体悬停效果 */
+.timeline-item:hover .timeline-line {
+	opacity: 0.4;
+}
+
+/* 时间线内容区域 */
+.timeline-content {
+	position: relative;
+	flex: 1;
+	padding-bottom: 0.5rem;
+}
+
+/* 内容连接线（可选的装饰性元素） */
+.timeline-content::before {
+	content: '';
+	position: absolute;
+	left: -2.25rem;
+	top: 0.75rem;
+	width: 1rem;
+	height: 1px;
+	background: var(--color-accent);
+	opacity: 0.2;
+	transition: opacity 0.3s ease;
+}
+
+.timeline-item:hover .timeline-content::before {
+	opacity: 0.4;
+}
+
+/* 深色模式适配 */
+[data-theme="dark"] .timeline-node .timeline-dot {
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .timeline-item:hover .timeline-node .timeline-dot {
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 640px) {
+	.timeline-container {
+		padding-left: 0;
+	}
+	
+	.timeline-line {
+		left: 1rem;
+	}
+	
+	.timeline-item {
+		gap: 1rem;
+	}
+	
+	.timeline-node {
+		margin-top: 0.25rem;
+	}
+	
+	.timeline-content::before {
+		left: -1.25rem;
+		width: 0.75rem;
+	}
+}
+
+/* 减少动画效果（尊重用户偏好） */
+@media (prefers-reduced-motion: reduce) {
+	.timeline-item {
+		opacity: 1;
+		transform: none;
+		animation: none;
+	}
+
+	.timeline-node::before,
+	.timeline-node .timeline-dot,
+	.timeline-content::before {
+		transition: none;
+	}
+
+	.timeline-item:hover .timeline-node::before {
+		transform: translate(-50%, -50%);
+	}
+
+	.timeline-item:hover .timeline-node .timeline-dot {
+		transform: none;
+	}
+}
+
+/* 时间线开始和结束标记 */
+.timeline-start,
+.timeline-end {
+	position: relative;
+	z-index: 10;
+}
+
+.timeline-start span,
+.timeline-end span {
+	transition: color 0.3s ease;
+}
+
+.timeline-end:hover span {
+	color: var(--color-accent);
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+	.timeline-line {
+		opacity: 0.6;
+	}
+
+	.timeline-node::before {
+		opacity: 0.3;
+	}
+
+	.timeline-content::before {
+		opacity: 0.6;
+	}
+}

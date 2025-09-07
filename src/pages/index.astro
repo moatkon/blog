@@ -2,7 +2,7 @@
 import { type CollectionEntry, getCollection } from "astro:content";
 // import SocialList from "@/components/SocialList.astro";
 import PostPreview from "@/components/blog/PostPreview.astro";
-import Note from "@/components/note/Note.astro";
+import TimelineNote from "@/components/note/TimelineNote.astro";
 import { getAllPosts } from "@/data/post";
 import PageLayout from "@/layouts/Base.astro";
 import { collectionDateSort } from "@/utils/date";
@@ -69,13 +69,37 @@ const latestNotes = allNotes.sort(collectionDateSort).slice(0, MAX_NOTES);
 				<h2 class="title text-accent mb-6 text-xl">
 					<a href="/notes/">Notes</a>
 				</h2>
-				<ul class="space-y-6" role="list">
-					{latestNotes.map((note) => (
-						<li>
-							<Note note={note} as="h3" isPreview />
-						</li>
-					))}
-				</ul>
+				<!-- 首页时间线样式（简化版） -->
+				<div class="timeline-container">
+					<div class="timeline-line absolute left-6 top-8 bottom-0 w-0.5"></div>
+
+					<!-- 时间线开始标记 -->
+					<div class="timeline-start flex items-center gap-4 mb-6">
+						<div class="w-3 h-3 bg-accent rounded-full border-2 border-global-bg shadow-sm relative z-10"></div>
+						<span class="text-sm text-accent font-medium">最新动态</span>
+					</div>
+
+					<ul class="timeline-list" role="list">
+						{latestNotes.map((note) => (
+							<li class="timeline-item">
+								<div class="timeline-node">
+									<div class="timeline-dot w-3 h-3 rounded-full"></div>
+								</div>
+								<div class="timeline-content">
+									<TimelineNote note={note} as="h3" isPreview />
+								</div>
+							</li>
+						))}
+					</ul>
+
+					<!-- 时间线结束标记 -->
+					<div class="timeline-end flex items-center gap-4 mt-6">
+						<div class="w-3 h-3 bg-accent/50 rounded-full border-2 border-global-bg shadow-sm relative z-10"></div>
+						<a href="/notes/" class="text-sm text-accent hover:text-accent-2 font-medium transition-colors">
+							查看全部 →
+						</a>
+					</div>
+				</div>
 			</section>
 		)
 	}

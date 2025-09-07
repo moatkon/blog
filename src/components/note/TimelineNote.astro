@@ -1,0 +1,124 @@
+---
+import { type CollectionEntry, render } from "astro:content";
+import FormattedDate from "@/components/FormattedDate.astro";
+import type { HTMLTag, Polymorphic } from "astro/types";
+
+type Props<Tag extends HTMLTag> = Polymorphic<{ as: Tag }> & {
+	note: CollectionEntry<"note">;
+	isPreview?: boolean | undefined;
+};
+
+const { as: Tag = "div", note, isPreview = false } = Astro.props;
+const { Content } = await render(note);
+---
+
+<article
+	class:list={[
+		"timeline-note-card",
+		isPreview &&
+			"bg-global-text/5 rounded-lg px-5 py-4 shadow-sm border border-global-text/10",
+	]}
+	data-pagefind-body={isPreview ? false : true}
+>
+	<!-- 日期标签 -->
+	<div class="timeline-date-badge mb-3">
+		<FormattedDate
+			class="inline-flex items-center text-xs font-medium text-accent bg-accent/10 hover:bg-accent/15 px-3 py-1.5 rounded-full border border-accent/20 transition-colors"
+			dateTimeOptions={{
+				hour: "2-digit",
+				minute: "2-digit",
+				year: "2-digit",
+				month: "2-digit",
+				day: "2-digit",
+			}}
+			date={note.data.publishDate}
+		/>
+	</div>
+
+	<!-- 标题 -->
+	<Tag
+		class="timeline-note-title"
+		class:list={{ "text-lg font-semibold": isPreview, title: !isPreview }}
+	>
+		{
+			isPreview ? (
+				<a
+					class="cactus-link hover:text-accent transition-colors"
+					href={`/notes/${note.id}/`}
+				>
+					{note.data.title}
+				</a>
+			) : (
+				<>{note.data.title}</>
+			)
+		}
+	</Tag>
+
+	<!-- 内容 -->
+	<div
+		class="timeline-note-content prose prose-sm prose-cactus mt-3 max-w-none [&>p:last-of-type]:mb-0"
+		class:list={{ "line-clamp-3": isPreview }}
+	>
+		<Content />
+	</div>
+
+	<!-- 阅读更多链接（仅在预览模式下显示） -->
+	{
+		isPreview && (
+			<div class="timeline-read-more mt-3">
+				<a
+					href={`/notes/${note.id}/`}
+					class="text-sm text-accent hover:text-accent-2 transition-colors inline-flex items-center gap-1"
+				>
+					阅读全文
+					<svg
+						class="w-3 h-3"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 5l7 7-7 7"
+						/>
+					</svg>
+				</a>
+			</div>
+		)
+	}
+</article>
+
+<style>
+	.timeline-note-card {
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.timeline-note-card:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	[data-theme="dark"] .timeline-note-card:hover {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	}
+
+	/* 减少动画效果（尊重用户偏好） */
+	@media (prefers-reduced-motion: reduce) {
+		.timeline-note-card {
+			transition: none;
+		}
+
+		.timeline-note-card:hover {
+			transform: none;
+		}
+	}
+
+	/* 响应式调整 */
+	@media (max-width: 640px) {
+		.timeline-note-card {
+			padding: 1rem;
+		}
+	}
+</style>

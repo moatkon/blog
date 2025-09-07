@@ -1,7 +1,7 @@
 ---
 import { type CollectionEntry, getCollection } from "astro:content";
 import Pagination from "@/components/Paginator.astro";
-import Note from "@/components/note/Note.astro";
+import TimelineNote from "@/components/note/TimelineNote.astro";
 import PageLayout from "@/layouts/Base.astro";
 import { collectionDateSort } from "@/utils/date";
 import type { GetStaticPaths, Page } from "astro";
@@ -49,15 +49,41 @@ const paginationProps = {
 				<Icon aria-hidden="true" class="h-6 w-6" focusable="false" name="mdi:rss" />
 			</a>
 		</h1>
-		<ul class="mt-6 space-y-8 text-start">
-			{
-				page.data.map((note) => (
-					<li class="">
-						<Note note={note} as="h2" isPreview />
-					</li>
-				))
-			}
-		</ul>
+		<!-- 垂直时间线容器 -->
+		<div class="timeline-container">
+			<!-- 时间线主线 -->
+			<div class="timeline-line absolute left-6 top-8 bottom-0 w-0.5"></div>
+
+			<!-- 时间线开始标记 -->
+			<div class="timeline-start flex items-center gap-4 mb-8">
+				<div class="w-3 h-3 bg-accent rounded-full border-2 border-global-bg shadow-sm relative z-10"></div>
+				<span class="text-sm text-accent font-medium">时间线开始</span>
+			</div>
+
+			<ul class="timeline-list">
+				{
+					page.data.map((note) => (
+						<li class="timeline-item">
+							<!-- 时间线节点 -->
+							<div class="timeline-node">
+								<div class="timeline-dot w-3 h-3 rounded-full"></div>
+							</div>
+
+							<!-- 内容区域 -->
+							<div class="timeline-content">
+								<TimelineNote note={note} as="h2" isPreview />
+							</div>
+						</li>
+					))
+				}
+			</ul>
+
+			<!-- 时间线结束标记 -->
+			<div class="timeline-end flex items-center gap-4 mt-8">
+				<div class="w-3 h-3 bg-accent/50 rounded-full border-2 border-global-bg shadow-sm relative z-10"></div>
+				<span class="text-sm text-accent/70 font-medium">更多内容...</span>
+			</div>
+		</div>
 		<Pagination {...paginationProps} />
 	</section>
 </PageLayout>
