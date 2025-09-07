@@ -30,16 +30,23 @@ const last12Months = data.slice(-12);
 			</div> */}
 
 			<!-- Chart bars -->
-			<div class="flex items-end justify-between h-32 gap-1">
+			<div class="flex items-end justify-between gap-1 relative" style="height: 150px; padding-top: 20px;">
 				{last12Months.map((month: MonthlyStats) => {
 					const heightPercent = month.count > 0 ? Math.max((month.count / maxCount) * 100, 3) : 1;
 					const heightPx = Math.round((heightPercent / 100) * 128); // 128px = h-32
 					return (
-						<div class="flex-1 flex flex-col items-center">
+						<div class="flex-1 flex flex-col items-center relative">
+							<!-- Count label above bar -->
+							{month.count > 0 && (
+								<div class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+									{month.count}
+								</div>
+							)}
+							<!-- Bar -->
 							<div
 								class="w-full chart-bar rounded-t"
 								style={`height: ${heightPx}px; background-color: var(--color-accent);`}
-								title={`${month.monthName} ${month.year}: ${month.count} posts (${heightPercent.toFixed(1)}% = ${heightPx}px)`}
+								title={`${month.monthName} ${month.year}: ${month.count} posts`}
 							></div>
 						</div>
 					);
