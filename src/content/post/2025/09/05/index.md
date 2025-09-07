@@ -2,7 +2,7 @@
 title: "去科技馆"
 description: "PS5"
 publishDate: "2025-09-05 10:37:48"
-draft: true
+draft: false
 tags: ["记录"]
 #updatedDate: 22 Jan 2024
 ---
