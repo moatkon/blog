@@ -10,42 +10,14 @@ interface Props {
 
 const { showWeekly = true, showDaily = true, className = "" } = Astro.props;
 
-// 计算 ISO 8601 周数的函数
-function getISOWeek(date: Date): {
-	year: number;
-	week: number;
-	dayOfWeek: number;
-} {
-	// 创建日期副本避免修改原始日期
-	const target = new Date(date.valueOf());
-	const dayNr = (date.getDay() + 6) % 7; // 周一为0，周日为6
-
-	// 设置到本周四
-	target.setDate(target.getDate() - dayNr + 3);
-	const jan4 = new Date(target.getFullYear(), 0, 4);
-	const dayDiff = (target.getTime() - jan4.getTime()) / 86400000;
-
-	// 计算周数
-	const weekNum =
-		1 + Math.round((dayDiff - ((jan4.getDay() + 6) % 7) + 3) / 7);
-
-	return {
-		year: target.getFullYear(),
-		week: weekNum,
-		dayOfWeek: dayNr + 1, // 1-7，周一为1，周日为7
-	};
-}
-
-// 获取当前时间信息
-const now = new Date();
-const { year, week, dayOfWeek } = getISOWeek(now);
-
-// 生成命名
-const weeklyName = `${year} W${week}`;
-const dailyName = `${year} W${week} D${dayOfWeek}`;
+// 这里不再进行服务端计算，改为客户端动态计算
 ---
 
-<div class={`naming-card ${className}`}>
+<naming-display
+	class={`naming-card ${className}`}
+	data-show-weekly={showWeekly}
+	data-show-daily={showDaily}
+>
 	<div class="card-header">
 		<div class="card-icon">📅</div>
 		<h3 class="card-title">当前命名</h3>
@@ -57,7 +29,7 @@ const dailyName = `${year} W${week} D${dayOfWeek}`;
 					<div class="item-icon">📝</div>
 					<div class="item-content">
 						<span class="item-label">周记</span>
-						<span class="item-value">{weeklyName}</span>
+						<span class="item-value weekly-name">加载中...</span>
 					</div>
 				</div>
 			)
@@ -68,15 +40,19 @@ const dailyName = `${year} W${week} D${dayOfWeek}`;
 					<div class="item-icon">📖</div>
 					<div class="item-content">
 						<span class="item-label">日记</span>
-						<span class="item-value">{dailyName}</span>
+						<span class="item-value daily-name">加载中...</span>
 					</div>
 				</div>
 			)
 		}
 	</div>
-</div>
+</naming-display>
 
 <style>
+	naming-display {
+		display: block;
+	}
+
 	.naming-card {
 		margin-bottom: 1.5rem;
 		border-radius: 0.75rem;
@@ -245,3 +221,78 @@ const dailyName = `${year} W${week} D${dayOfWeek}`;
 		}
 	}
 </style>
+
+<script>
+	// 客户端动态计算周数和日期
+	class NamingDisplay extends HTMLElement {
+		connectedCallback() {
+			this.updateNaming();
+		}
+
+		// 修正的 ISO 8601 周数计算，与Google日历匹配
+		getISOWeek(date: Date): {
+			year: number;
+			week: number;
+			dayOfWeek: number;
+		} {
+			const target = new Date(date.valueOf());
+
+			// 获取星期几 (0=周日, 1=周一, ..., 6=周六)
+			const dayOfWeek = target.getDay();
+			// 转换为 ISO 格式 (1=周一, 2=周二, ..., 7=周日)
+			const isoDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+
+			// 复制日期并调整到本周的周四
+			const thursday = new Date(target);
+			thursday.setDate(target.getDate() + (4 - isoDayOfWeek));
+
+			// 获取周四所在的年份
+			const year = thursday.getFullYear();
+
+			// 计算该年1月4日（ISO 8601标准中第1周总是包含1月4日）
+			const jan4 = new Date(year, 0, 4);
+
+			// 找到1月4日所在周的周一
+			const jan4DayOfWeek = jan4.getDay();
+			const jan4Monday = new Date(jan4);
+			jan4Monday.setDate(
+				4 - (jan4DayOfWeek === 0 ? 7 : jan4DayOfWeek) + 1,
+			);
+
+			// 计算周数
+			const weekNumber =
+				Math.floor(
+					(thursday.getTime() - jan4Monday.getTime()) /
+						(7 * 24 * 60 * 60 * 1000),
+				) + 1;
+
+			return {
+				year: year,
+				week: weekNumber,
+				dayOfWeek: isoDayOfWeek,
+			};
+		}
+
+		updateNaming() {
+			const now = new Date();
+			const { year, week, dayOfWeek } = this.getISOWeek(now);
+
+			const weeklyName = `${year} W${week}`;
+			const dailyName = `${year} W${week} D${dayOfWeek}`;
+
+			// 更新显示
+			const weeklyElement = this.querySelector(".weekly-name");
+			const dailyElement = this.querySelector(".daily-name");
+
+			if (weeklyElement) {
+				weeklyElement.textContent = weeklyName;
+			}
+
+			if (dailyElement) {
+				dailyElement.textContent = dailyName;
+			}
+		}
+	}
+
+	customElements.define("naming-display", NamingDisplay);
+</script>
