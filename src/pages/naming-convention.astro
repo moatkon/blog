@@ -4,8 +4,7 @@ import PageLayout from "@/layouts/Base.astro";
 
 const meta = {
 	title: "Naming Convention",
-	description:
-		"Naming Convention",
+	description: "Naming Convention",
 };
 ---
 
@@ -13,10 +12,19 @@ const meta = {
 	<div class="prose prose-sm prose-cactus max-w-none">
 		<h1 class="title mb-6">Naming Convention</h1>
 		<div class="prose prose-sm prose-cactus max-w-none">
-			<h3>周报命名规范:</h3>
+			<h3>周记命名规范:</h3>
 			<ul class="list-inside list-disc" role="list">
 				<li>
-					<strong>YYYY W{"{num}"}</strong>: 使用场景:周报。举例: <strong>2025 W37</strong> 表示2025年第37周
+					<strong>YYYY W{"{num}"}</strong>: 使用场景:周记。举例: <strong
+						>2025 W37</strong
+					> 表示2025年第37周
+				</li>
+			</ul>
+			<h3>日记命名规范:</h3>
+			<ul class="list-inside list-disc" role="list">
+				<li>
+					<strong>YYYY W{"{num}"} D{"{num}"}</strong>:
+					使用场景:日记。举例: <strong>2025 W37 D1</strong> 表示2025年第37周第一天
 				</li>
 			</ul>
 		</div>
