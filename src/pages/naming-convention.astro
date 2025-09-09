@@ -1,5 +1,5 @@
 ---
-import StatsPanel from "@/components/stats/StatsPanel.astro";
+import NamingDisplay from "@/components/NamingDisplay.astro";
 import PageLayout from "@/layouts/Base.astro";
 
 const meta = {
@@ -11,6 +11,7 @@ const meta = {
 <PageLayout meta={meta}>
 	<div class="prose prose-sm prose-cactus max-w-none">
 		<h1 class="title mb-6">{meta.title}</h1>
+		<NamingDisplay />
 		<div class="prose prose-sm prose-cactus max-w-none">
 			<h3>周记命名规范:</h3>
 			<ul class="list-inside list-disc" role="list">

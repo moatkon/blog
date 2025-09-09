@@ -1,0 +1,247 @@
+---
+// 动态计算当前周记名和日记名的组件
+// 基于 ISO 8601 标准计算周数
+
+interface Props {
+	showWeekly?: boolean;
+	showDaily?: boolean;
+	className?: string;
+}
+
+const { showWeekly = true, showDaily = true, className = "" } = Astro.props;
+
+// 计算 ISO 8601 周数的函数
+function getISOWeek(date: Date): {
+	year: number;
+	week: number;
+	dayOfWeek: number;
+} {
+	// 创建日期副本避免修改原始日期
+	const target = new Date(date.valueOf());
+	const dayNr = (date.getDay() + 6) % 7; // 周一为0，周日为6
+
+	// 设置到本周四
+	target.setDate(target.getDate() - dayNr + 3);
+	const jan4 = new Date(target.getFullYear(), 0, 4);
+	const dayDiff = (target.getTime() - jan4.getTime()) / 86400000;
+
+	// 计算周数
+	const weekNum =
+		1 + Math.round((dayDiff - ((jan4.getDay() + 6) % 7) + 3) / 7);
+
+	return {
+		year: target.getFullYear(),
+		week: weekNum,
+		dayOfWeek: dayNr + 1, // 1-7，周一为1，周日为7
+	};
+}
+
+// 获取当前时间信息
+const now = new Date();
+const { year, week, dayOfWeek } = getISOWeek(now);
+
+// 生成命名
+const weeklyName = `${year} W${week}`;
+const dailyName = `${year} W${week} D${dayOfWeek}`;
+---
+
+<div class={`naming-card ${className}`}>
+	<div class="card-header">
+		<div class="card-icon">📅</div>
+		<h3 class="card-title">当前命名</h3>
+	</div>
+	<div class="card-content">
+		{
+			showWeekly && (
+				<div class="naming-item weekly">
+					<div class="item-icon">📝</div>
+					<div class="item-content">
+						<span class="item-label">周记</span>
+						<span class="item-value">{weeklyName}</span>
+					</div>
+				</div>
+			)
+		}
+		{
+			showDaily && (
+				<div class="naming-item daily">
+					<div class="item-icon">📖</div>
+					<div class="item-content">
+						<span class="item-label">日记</span>
+						<span class="item-value">{dailyName}</span>
+					</div>
+				</div>
+			)
+		}
+	</div>
+</div>
+
+<style>
+	.naming-card {
+		margin-bottom: 1.5rem;
+		border-radius: 0.75rem;
+		background: var(--color-global-bg);
+		border: 1px solid
+			color-mix(in srgb, var(--color-global-text) 15%, transparent);
+		box-shadow: 0 1px 3px 0
+			color-mix(in srgb, var(--color-global-text) 10%, transparent);
+		overflow: hidden;
+		transition: all 0.2s ease;
+	}
+
+	.naming-card:hover {
+		box-shadow: 0 4px 12px 0
+			color-mix(in srgb, var(--color-global-text) 15%, transparent);
+		transform: translateY(-1px);
+	}
+
+	.card-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 1rem 1.25rem 0.75rem;
+		background: linear-gradient(
+			135deg,
+			color-mix(in srgb, var(--color-accent) 8%, transparent),
+			color-mix(in srgb, var(--color-accent) 4%, transparent)
+		);
+		border-bottom: 1px solid
+			color-mix(in srgb, var(--color-global-text) 8%, transparent);
+	}
+
+	.card-icon {
+		font-size: 1.25rem;
+		line-height: 1;
+	}
+
+	.card-title {
+		margin: 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: var(--color-accent);
+		letter-spacing: -0.025em;
+	}
+
+	.card-content {
+		padding: 1rem 1.25rem 1.25rem;
+	}
+
+	.naming-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem;
+		border-radius: 0.5rem;
+		background: color-mix(
+			in srgb,
+			var(--color-global-text) 3%,
+			transparent
+		);
+		transition: background-color 0.15s ease;
+	}
+
+	.naming-item:not(:last-child) {
+		margin-bottom: 0.75rem;
+	}
+
+	.naming-item:hover {
+		background: color-mix(
+			in srgb,
+			var(--color-global-text) 6%,
+			transparent
+		);
+	}
+
+	.item-icon {
+		font-size: 1.125rem;
+		line-height: 1;
+		opacity: 0.8;
+	}
+
+	.item-content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		flex: 1;
+	}
+
+	.item-label {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: color-mix(in srgb, var(--color-global-text) 60%, transparent);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.item-value {
+		font-family:
+			ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+			"Liberation Mono", "Courier New", monospace;
+		font-weight: 700;
+		font-size: 1.125rem;
+		color: var(--color-accent);
+		letter-spacing: 0.025em;
+	}
+
+	/* 深色模式适配 */
+	[data-theme="dark"] .naming-card {
+		border-color: color-mix(
+			in srgb,
+			var(--color-global-text) 20%,
+			transparent
+		);
+		box-shadow: 0 1px 3px 0
+			color-mix(in srgb, var(--color-global-text) 20%, transparent);
+	}
+
+	[data-theme="dark"] .naming-card:hover {
+		box-shadow: 0 4px 12px 0
+			color-mix(in srgb, var(--color-global-text) 25%, transparent);
+	}
+
+	[data-theme="dark"] .card-header {
+		background: linear-gradient(
+			135deg,
+			color-mix(in srgb, var(--color-accent) 12%, transparent),
+			color-mix(in srgb, var(--color-accent) 6%, transparent)
+		);
+		border-bottom-color: color-mix(
+			in srgb,
+			var(--color-global-text) 15%,
+			transparent
+		);
+	}
+
+	[data-theme="dark"] .naming-item {
+		background: color-mix(
+			in srgb,
+			var(--color-global-text) 6%,
+			transparent
+		);
+	}
+
+	[data-theme="dark"] .naming-item:hover {
+		background: color-mix(
+			in srgb,
+			var(--color-global-text) 10%,
+			transparent
+		);
+	}
+
+	/* 响应式设计 */
+	@media (min-width: 640px) {
+		.card-content {
+			display: flex;
+			gap: 1rem;
+		}
+
+		.naming-item {
+			flex: 1;
+			margin-bottom: 0;
+		}
+
+		.naming-item:not(:last-child) {
+			margin-bottom: 0;
+		}
+	}
+</style>
