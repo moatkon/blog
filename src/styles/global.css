@@ -70,6 +70,10 @@
 		@apply text-accent-2 text-2xl font-semibold;
 	}
 
+	.title-min {
+		@apply text-accent-2 text-lg font-semibold;
+	}
+
 	/* 引用块样式 - 符合网站全局风格 */
 	.prose blockquote {
 		@apply bg-global-text/5 rounded-md py-1;
