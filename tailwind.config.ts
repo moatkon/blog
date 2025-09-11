@@ -4,9 +4,54 @@ export default {
 	plugins: [require("@tailwindcss/typography")],
 	theme: {
 		extend: {
+			fontFamily: {
+				sans: [
+					"DM Sans Variable",
+					"DM Sans",
+					"-apple-system",
+					"BlinkMacSystemFont",
+					"Segoe UI",
+					"Noto Sans SC",
+					"PingFang SC",
+					"Hiragino Sans GB",
+					"Microsoft YaHei",
+					"Helvetica Neue",
+					"Helvetica",
+					"Arial",
+					"sans-serif",
+				],
+				mono: [
+					"ui-monospace",
+					"SFMono-Regular",
+					"Menlo",
+					"Monaco",
+					"Consolas",
+					"Liberation Mono",
+					"Courier New",
+					"monospace",
+				],
+			},
 			typography: () => ({
 				DEFAULT: {
 					css: {
+						// 基础字体设置
+						fontFamily: "inherit",
+						fontSize: "1rem",
+						lineHeight: "1.8",
+						letterSpacing: "0.01em",
+						// 中文字体优化
+						"p, li, blockquote": {
+							lineHeight: "1.8",
+							fontWeight: "400",
+						},
+						// 标题优化
+						"h1, h2, h3, h4, h5, h6": {
+							fontWeight: "600",
+							lineHeight: "1.4",
+							letterSpacing: "-0.01em",
+							marginTop: "2em",
+							marginBottom: "1em",
+						},
 						a: {
 							textUnderlineOffset: "3px",
 							"&:hover": {
