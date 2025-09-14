@@ -1,7 +1,9 @@
 ---
-title: "2025 W37D2"
-description: ""
-publishDate: "2025-09-09T23:58:00+08:00"
+title: "2025 W37 D2"
+description: "2025 W37 D2"
+publishDate: "2025-09-13T01:32:53+08:00"
+draft: false
+tags: ["日记"]
 ---
 
 昨天小宝鼻涕流得比较厉害，媳妇打电话给我,说要带小宝去医院看看,当时我在公司加班,最近手头上的项目稍微有点忙。
