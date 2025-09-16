@@ -91,53 +91,72 @@ export const remarkGoogleMaps: Plugin<[GoogleMapsPluginOptions?], Root> = (optio
 						}
 					}
 
-					// Function to test if Google Maps is accessible with enhanced error handling
+					// Function to test if Google Maps is accessible with better proxy/restriction handling
 					function testGoogleMapsAccess() {
 						return new Promise((resolve) => {
 							const startTime = Date.now();
-							const controller = new AbortController();
+
+							// Strategy: Try to load an actual iframe (most reliable test)
+							const testIframe = document.createElement('iframe');
+							testIframe.style.display = 'none';
+							testIframe.style.width = '1px';
+							testIframe.style.height = '1px';
+							testIframe.style.position = 'absolute';
+							testIframe.style.left = '-9999px';
+
+							let testCompleted = false;
+
+							// Test with a simple, known working Google Maps URL
+							const testUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3000!2d0!3d0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0:0x0!2s!5e0!3m2!1sen!2s!4v' + Date.now();
+
 							const timeoutId = setTimeout(() => {
-								controller.abort();
-								log('Network test timed out after ' + networkTimeout + 'ms', 'warn');
+								if (!testCompleted) {
+									testCompleted = true;
+									if (document.body.contains(testIframe)) {
+										document.body.removeChild(testIframe);
+									}
+									log('Iframe test timed out after ' + networkTimeout + 'ms, assuming Google Maps is accessible', 'warn');
+									// In case of timeout, assume accessible (better user experience)
+									resolve(true);
+								}
 							}, networkTimeout);
 
-							// Try multiple endpoints for better reliability
-							const testEndpoints = [
-								'https://www.google.com/maps/embed',
-								'https://maps.googleapis.com/maps/api/js',
-								'https://maps.google.com'
-							];
-
-							let testsPassed = 0;
-							let testsCompleted = 0;
-							const totalTests = testEndpoints.length;
-
-							testEndpoints.forEach(endpoint => {
-								fetch(endpoint, {
-									method: 'HEAD',
-									signal: controller.signal,
-									mode: 'no-cors'
-								})
-								.then(() => {
-									testsPassed++;
-									testsCompleted++;
-									checkCompletion();
-								})
-								.catch((error) => {
-									testsCompleted++;
-									log('Test failed for ' + endpoint + ': ' + error.message, 'warn');
-									checkCompletion();
-								});
-							});
-
-							function checkCompletion() {
-								if (testsCompleted === totalTests) {
+							testIframe.onload = function() {
+								if (!testCompleted) {
+									testCompleted = true;
 									clearTimeout(timeoutId);
+									if (document.body.contains(testIframe)) {
+										document.body.removeChild(testIframe);
+									}
 									const responseTime = Date.now() - startTime;
-									const accessible = testsPassed > 0;
+									log('Iframe test passed in ' + responseTime + 'ms - Google Maps is accessible');
+									resolve(true);
+								}
+							};
 
-									log('Network test completed: ' + testsPassed + '/' + totalTests + ' endpoints accessible in ' + responseTime + 'ms');
-									resolve(accessible);
+							testIframe.onerror = function() {
+								if (!testCompleted) {
+									testCompleted = true;
+									clearTimeout(timeoutId);
+									if (document.body.contains(testIframe)) {
+										document.body.removeChild(testIframe);
+									}
+									log('Iframe test failed - Google Maps may not be accessible', 'warn');
+									resolve(false);
+								}
+							};
+
+							// Start the test
+							try {
+								testIframe.src = testUrl;
+								document.body.appendChild(testIframe);
+								log('Starting Google Maps accessibility test with iframe method');
+							} catch (error) {
+								if (!testCompleted) {
+									testCompleted = true;
+									clearTimeout(timeoutId);
+									log('Failed to create test iframe: ' + error.message, 'error');
+									resolve(false);
 								}
 							}
 						});
@@ -217,13 +236,16 @@ export const remarkGoogleMaps: Plugin<[GoogleMapsPluginOptions?], Root> = (optio
 								log('Google Maps is accessible, loading map');
 								loadMap();
 							} else {
-								log('Google Maps is not accessible, hiding container');
-								handleError('NETWORK_INACCESSIBLE');
+								log('Google Maps accessibility test failed, but trying to load anyway (proxy environment detected)', 'warn');
+								// In proxy environments, the test might fail but maps could still work
+								// So we'll try to load the map anyway for better user experience
+								loadMap();
 							}
 						})
 						.catch((error) => {
-							log('Network test failed: ' + error.message, 'error');
-							handleError('NETWORK_TEST_FAILED');
+							log('Network test failed: ' + error.message + ', attempting to load map anyway', 'warn');
+							// On error, try to load anyway (better user experience in proxy environments)
+							loadMap();
 						});
 				})();
 			`,

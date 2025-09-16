@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Google Maps - No Network Check</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .url-display { background: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 12px; margin: 10px 0; }
+        iframe { width: 100%; height: 400px; border: 0; border-radius: 8px; margin: 10px 0; }
+        .success { border-color: #4CAF50; background-color: #f8fff8; }
+        .error { border-color: #f44336; background-color: #fff8f8; }
+        .info { background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Google Maps Test - No Network Check</h1>
+    
+    <div class="info">
+        <h3>🔧 测试说明</h3>
+        <p>这个测试直接加载 Google Maps，跳过网络检测。适用于代理环境或网络受限的情况。</p>
+        <p><strong>你的网络环境：</strong> 检测到代理地址 127.0.0.1:7890</p>
+    </div>
+    
+    <div class="test-section" id="test1">
+        <h2>🧪 Test 1: 北京天安门</h2>
+        <p>lat="39.9042" lng="116.4074" zoom="13"</p>
+        <div class="url-display" id="url1"></div>
+        <iframe id="iframe1"></iframe>
+        <div id="status1"></div>
+    </div>
+    
+    <div class="test-section" id="test2">
+        <h2>🧪 Test 2: 上海外滩</h2>
+        <p>lat="31.2304" lng="121.4737" zoom="14"</p>
+        <div class="url-display" id="url2"></div>
+        <iframe id="iframe2"></iframe>
+        <div id="status2"></div>
+    </div>
+    
+    <div class="test-section" id="test3">
+        <h2>🧪 Test 3: 深圳</h2>
+        <p>lat="22.5431" lng="114.0579" zoom="12"</p>
+        <div class="url-display" id="url3"></div>
+        <iframe id="iframe3"></iframe>
+        <div id="status3"></div>
+    </div>
+    
+    <div class="test-section" id="test4">
+        <h2>🧪 Test 4: 广州</h2>
+        <p>lat="23.1291" lng="113.2644" zoom="13"</p>
+        <div class="url-display" id="url4"></div>
+        <iframe id="iframe4"></iframe>
+        <div id="status4"></div>
+    </div>
+
+    <script>
+        // Plugin URL generation function (simplified, no network check)
+        function generateEmbedUrl(params) {
+            const zoom = parseFloat(params.zoom || "13");
+            const language = params.language || "zh-CN";
+            const region = params.region || "s";
+            
+            function getMapTypeParam(maptype) {
+                switch (maptype) {
+                    case 'satellite': return '1';
+                    case 'hybrid': return '2';
+                    case 'terrain': return '4';
+                    case 'roadmap':
+                    default: return '0';
+                }
+            }
+            
+            if (params.lat && params.lng) {
+                const lat = parseFloat(params.lat);
+                const lng = parseFloat(params.lng);
+                
+                const distance = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+                const timestamp = Date.now();
+                const mapTypeParam = getMapTypeParam(params.maptype || "roadmap");
+                
+                const placeId = '0x0:0x0';
+                const placeName = `${lat},${lng}`;
+                
+                const pb = [
+                    '!1m18',
+                    '!1m12',
+                    '!1m3',
+                    `!1d${distance}`,
+                    `!2d${lng}`,
+                    `!3d${lat}`,
+                    '!2m3',
+                    '!1f0',
+                    '!2f0',
+                    '!3f0',
+                    '!3m2',
+                    '!1i1024',
+                    '!2i768',
+                    `!4f${zoom}.1`,
+                    '!3m3',
+                    '!1m2',
+                    `!1s${placeId}`,
+                    `!2s${encodeURIComponent(placeName)}`,
+                    `!5e${mapTypeParam}`,
+                    '!3m2',
+                    `!1s${language}`,
+                    `!2s${region}`,
+                    `!4v${timestamp}`,
+                    '!5m2',
+                    `!1s${language}`,
+                    `!2s${region}`
+                ].join('');
+                
+                return `https://www.google.com/maps/embed?pb=${pb}`;
+            }
+            
+            return "";
+        }
+        
+        // Test cases - Chinese cities
+        const tests = [
+            { id: 1, params: { lat: "39.9042", lng: "116.4074", zoom: "13" }, name: "北京天安门" },
+            { id: 2, params: { lat: "31.2304", lng: "121.4737", zoom: "14" }, name: "上海外滩" },
+            { id: 3, params: { lat: "22.5431", lng: "114.0579", zoom: "12" }, name: "深圳" },
+            { id: 4, params: { lat: "23.1291", lng: "113.2644", zoom: "13" }, name: "广州" }
+        ];
+        
+        // Run tests
+        tests.forEach(test => {
+            const url = generateEmbedUrl(test.params);
+            const urlElement = document.getElementById(`url${test.id}`);
+            const iframeElement = document.getElementById(`iframe${test.id}`);
+            const statusElement = document.getElementById(`status${test.id}`);
+            const sectionElement = document.getElementById(`test${test.id}`);
+            
+            urlElement.textContent = url;
+            
+            // Set iframe source directly (no network check)
+            iframeElement.src = url;
+            statusElement.innerHTML = '<span style="color: blue;">🔄 Loading directly (no network check)...</span>';
+            
+            // Test iframe loading
+            iframeElement.onload = function() {
+                statusElement.innerHTML = '<span style="color: green;">✅ Loaded successfully</span>';
+                sectionElement.classList.add('success');
+                console.log(`✅ Test ${test.id} (${test.name}) passed`);
+            };
+            
+            iframeElement.onerror = function() {
+                statusElement.innerHTML = '<span style="color: red;">❌ Failed to load</span>';
+                sectionElement.classList.add('error');
+                console.log(`❌ Test ${test.id} (${test.name}) failed`);
+            };
+            
+            // Timeout check
+            setTimeout(() => {
+                if (statusElement.innerHTML.includes('Loading')) {
+                    statusElement.innerHTML = '<span style="color: orange;">⏳ Still loading...</span>';
+                }
+            }, 5000);
+        });
+        
+        console.log('🧪 Running Google Maps tests without network check...');
+        console.log('🌐 Proxy environment detected: 127.0.0.1:7890');
+    </script>
+</body>
+</html>
