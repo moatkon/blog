@@ -3,6 +3,9 @@
 /* config for tailwindcss-typography plugin */
 @config "../../tailwind.config.ts";
 
+/* Import component styles */
+@import "./components/google-maps.css";
+
 /* use a selector-based strategy for dark mode */
 @variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 

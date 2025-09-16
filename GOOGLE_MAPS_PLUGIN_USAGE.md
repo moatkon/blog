@@ -6,12 +6,17 @@
 
 ## 主要特性
 
-✅ **智能网络检测**：只有在能访问 Google 地图时才加载地图  
-✅ **零空间占用**：无法访问时完全隐藏，不占用页面空间  
-✅ **响应式设计**：iframe 宽度自动调整为 100%  
-✅ **经纬度支持**：支持精确的坐标定位  
-✅ **地点搜索**：支持地点名称搜索  
-✅ **自定义参数**：支持自定义高度、缩放级别等
+✅ **智能网络检测**：多端点测试，只有在能访问 Google 地图时才加载地图
+✅ **零空间占用**：无法访问时完全隐藏，不占用页面空间
+✅ **响应式设计**：iframe 宽度自动调整为 100%，支持移动端
+✅ **经纬度支持**：支持精确的坐标定位，带坐标验证
+✅ **地点搜索**：支持地点名称搜索
+✅ **多种地图类型**：支持路线图、卫星图、混合图、地形图
+✅ **国际化支持**：支持多语言和地区设置
+✅ **增强错误处理**：详细的错误日志和自定义事件
+✅ **无障碍访问**：支持 ARIA 标签和语义化标记
+✅ **TypeScript 支持**：完整的类型定义
+✅ **自定义样式**：专门的 CSS 样式文件，支持深色模式
 
 ## 安装步骤
 
@@ -49,13 +54,22 @@ export default defineConfig({
 
 | 参数 | 类型 | 必需 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `lat` | string | 条件必需* | - | 纬度坐标 |
-| `lng` | string | 条件必需* | - | 经度坐标 |
+| `lat` | string | 条件必需* | - | 纬度坐标 (-90 到 90) |
+| `lng` | string | 条件必需* | - | 经度坐标 (-180 到 180) |
 | `place` | string | 条件必需* | - | 地点名称 |
 | `zoom` | string | 否 | "13" | 缩放级别 (1-20) |
 | `height` | string | 否 | "450" | 地图高度 (像素) |
+| `maptype` | string | 否 | "roadmap" | 地图类型 |
+| `language` | string | 否 | "en" | 界面语言 |
+| `region` | string | 否 | "US" | 地区代码 |
 
 *注意：必须提供 `lat`+`lng` 或 `place` 其中一组
+
+#### 地图类型 (maptype)
+- `roadmap`: 默认路线图
+- `satellite`: 卫星图像
+- `hybrid`: 混合图 (卫星图 + 道路)
+- `terrain`: 地形图
 
 ### 使用示例
 
@@ -74,9 +88,24 @@ export default defineConfig({
 ::googlemap{lat="40.7128" lng="-74.0060" height="300"}
 ```
 
-#### 4. 完整参数示例
+#### 4. 卫星视图
 ```markdown
-::googlemap{lat="35.6762" lng="139.6503" zoom="10" height="400"}
+::googlemap{lat="35.6762" lng="139.6503" zoom="10" maptype="satellite"}
+```
+
+#### 5. 多语言支持
+```markdown
+::googlemap{place="埃菲尔铁塔" language="zh-CN" region="CN" zoom="15"}
+```
+
+#### 6. 地形图
+```markdown
+::googlemap{place="Grand Canyon National Park" maptype="terrain" zoom="12"}
+```
+
+#### 7. 完整参数示例
+```markdown
+::googlemap{lat="35.6762" lng="139.6503" zoom="10" height="400" maptype="hybrid" language="ja" region="JP"}
 ```
 
 ## 测试文件
