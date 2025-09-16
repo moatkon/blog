@@ -260,37 +260,108 @@ export const remarkGoogleMaps: Plugin<[GoogleMapsPluginOptions?], Root> = (optio
 };
 
 /**
- * Generate Google Maps embed URL with enhanced parameters
+ * Generate Google Maps embed URL using the correct pb parameter format
+ * Based on analysis of working Google Maps share URLs
  */
 function generateEmbedUrl(params: GoogleMapsEmbedParams, config: GoogleMapsPluginOptions): string {
-	const zoom = params.zoom || config.defaultZoom?.toString() || "13";
-	const maptype = params.maptype || config.defaultMapType || "roadmap";
-	const language = params.language || "en";
-	const region = params.region || "US";
-
-	// Map type parameter for Google Maps embed
-	const maptypeParam = getMapTypeParam(maptype);
+	const zoom = parseFloat(params.zoom || config.defaultZoom?.toString() || "13");
+	const language = params.language || "zh-CN";
+	const region = params.region || "s"; // Note: working examples use 's' not 'us'
 
 	if (hasCoordinates(params)) {
-		// Use coordinates - create embed URL with coordinates and enhanced parameters
 		const lat = parseFloat(params.lat);
 		const lng = parseFloat(params.lng);
 
-		// Calculate appropriate distance based on zoom level for better map display
-		const distance = Math.round(156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, parseInt(zoom)));
+		// Calculate distance using Google Maps formula
+		const distance = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+		const timestamp = Date.now();
+		const mapTypeParam = getMapTypeParam(params.maptype || config.defaultMapType || "roadmap");
 
-		return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d${distance}!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f${zoom}.1!5e${maptypeParam}!3m2!1s${language}!2s${region}`;
+		// For coordinates without a specific place, use generic place ID and coordinates as name
+		const placeId = '0x0:0x0';
+		const placeName = `${lat},${lng}`;
+
+		// Build pb parameter following the exact pattern from working examples:
+		// !1m18!1m12!1m3!1d{distance}!2d{lng}!3d{lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f{zoom}.1!3m3!1m2!1s{placeId}!2s{placeName}!5e{mapType}!3m2!1s{lang}!2s{region}!4v{timestamp}!5m2!1s{lang}!2s{region}
+		const pb = [
+			'!1m18',
+			'!1m12',
+			'!1m3',
+			`!1d${distance}`,
+			`!2d${lng}`,
+			`!3d${lat}`,
+			'!2m3',
+			'!1f0',
+			'!2f0',
+			'!3f0',
+			'!3m2',
+			'!1i1024',
+			'!2i768',
+			`!4f${zoom}.1`,
+			'!3m3',
+			'!1m2',
+			`!1s${placeId}`,
+			`!2s${encodeURIComponent(placeName)}`,
+			`!5e${mapTypeParam}`,
+			'!3m2',
+			`!1s${language}`,
+			`!2s${region}`,
+			`!4v${timestamp}`,
+			'!5m2',
+			`!1s${language}`,
+			`!2s${region}`
+		].join('');
+
+		return `https://www.google.com/maps/embed?pb=${pb}`;
+
 	} else if (hasPlace(params)) {
-		// For place names, use the query parameter format with enhanced parameters
+		// For place names, we'll use a similar structure but with place search
+		const timestamp = Date.now();
+		const mapTypeParam = getMapTypeParam(params.maptype || config.defaultMapType || "roadmap");
 		const encodedPlace = encodeURIComponent(params.place);
-		return `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3000!2d0!3d0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f${zoom}.1!3m3!1m2!1s0x0%3A0x0!2s${encodedPlace}!5e${maptypeParam}!3m2!1s${language}!2s${region}`;
+
+		// Use a generic distance for place search
+		const distance = 3000;
+
+		const pb = [
+			'!1m18',
+			'!1m12',
+			'!1m3',
+			`!1d${distance}`,
+			'!2d0',
+			'!3d0',
+			'!2m3',
+			'!1f0',
+			'!2f0',
+			'!3f0',
+			'!3m2',
+			'!1i1024',
+			'!2i768',
+			`!4f${zoom}.1`,
+			'!3m3',
+			'!1m2',
+			'!1s0x0:0x0',
+			`!2s${encodedPlace}`,
+			`!5e${mapTypeParam}`,
+			'!3m2',
+			`!1s${language}`,
+			`!2s${region}`,
+			`!4v${timestamp}`,
+			'!5m2',
+			`!1s${language}`,
+			`!2s${region}`
+		].join('');
+
+		return `https://www.google.com/maps/embed?pb=${pb}`;
 	}
 
 	return "";
 }
 
+
+
 /**
- * Convert map type to Google Maps embed parameter
+ * Convert map type to Google Maps embed parameter (legacy function, kept for compatibility)
  */
 function getMapTypeParam(maptype: GoogleMapsType): string {
 	switch (maptype) {
@@ -299,7 +370,7 @@ function getMapTypeParam(maptype: GoogleMapsType): string {
 		case 'hybrid':
 			return '2'; // Hybrid view (satellite + roads)
 		case 'terrain':
-			return '3'; // Terrain view
+			return '4'; // Terrain view
 		case 'roadmap':
 		default:
 			return '0'; // Default roadmap view

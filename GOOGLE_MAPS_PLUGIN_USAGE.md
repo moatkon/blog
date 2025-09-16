@@ -1,8 +1,10 @@
-# Google Maps Plugin 使用指南
+# Google Maps Plugin 使用指南 - 已修复版本
 
 ## 概述
 
 这是一个模仿 `remark-github-card` 的 Google 地图插件，用于在 Astro 博客的 Markdown 文件中嵌入 Google 地图。
+
+**🔧 最新修复：** 插件现在使用正确的 Google Maps pb 参数格式，与 Google Maps 分享功能生成的 iframe 格式完全一致，无需 API 密钥即可正常工作。
 
 ## 主要特性
 

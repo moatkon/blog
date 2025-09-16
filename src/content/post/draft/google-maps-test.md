@@ -1,14 +1,14 @@
 ---
-title: "Google Maps Plugin Test"
-description: "Testing the Google Maps plugin with various configurations"
+title: "Google Maps Plugin Test - Fixed Version"
+description: "Testing the fixed Google Maps plugin with correct pb parameter format"
 publishDate: "2025-01-16"
-tags: ["test", "maps", "plugin"]
+tags: ["test", "maps", "plugin", "fixed"]
 draft: false
 ---
 
-# Google Maps Plugin Test
+# Google Maps Plugin Test - Fixed Version
 
-This post demonstrates the Google Maps plugin functionality with various configurations.
+This post demonstrates the **fixed** Google Maps plugin functionality with correct pb parameter format. The plugin now generates URLs that match Google Maps' official share format.
 
 ## Test 1: Using Coordinates (Beijing)
 

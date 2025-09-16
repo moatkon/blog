@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Fixed Google Maps Plugin</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .url-display { background: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 12px; margin: 10px 0; }
+        iframe { width: 100%; height: 400px; border: 0; border-radius: 8px; margin: 10px 0; }
+        .success { border-color: #4CAF50; background-color: #f8fff8; }
+        .error { border-color: #f44336; background-color: #fff8f8; }
+    </style>
+</head>
+<body>
+    <h1>Test Fixed Google Maps Plugin</h1>
+    
+    <div class="test-section">
+        <h2>✅ Reference: Working URL (黄山)</h2>
+        <div class="url-display">https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d212623.09168893012!2d117.68538765589432!3d30.17751277765749!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3435c68c09678d3d%3A0x706d912f1c61517e!2z6buE5bGx!5e0!3m2!1szh-CN!2s!4v1757992277370!5m2!1szh-CN!2s</div>
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d212623.09168893012!2d117.68538765589432!3d30.17751277765749!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3435c68c09678d3d%3A0x706d912f1c61517e!2z6buE5bGx!5e0!3m2!1szh-CN!2s!4v1757992277370!5m2!1szh-CN!2s"></iframe>
+    </div>
+    
+    <div class="test-section" id="test1">
+        <h2>🧪 Test 1: Beijing Coordinates</h2>
+        <p>lat="39.9042" lng="116.4074" zoom="13"</p>
+        <div class="url-display" id="url1"></div>
+        <iframe id="iframe1"></iframe>
+        <div id="status1"></div>
+    </div>
+    
+    <div class="test-section" id="test2">
+        <h2>🧪 Test 2: New York Coordinates</h2>
+        <p>lat="40.7128" lng="-74.0060" zoom="12"</p>
+        <div class="url-display" id="url2"></div>
+        <iframe id="iframe2"></iframe>
+        <div id="status2"></div>
+    </div>
+    
+    <div class="test-section" id="test3">
+        <h2>🧪 Test 3: Place Name (Eiffel Tower)</h2>
+        <p>place="Eiffel Tower, Paris" zoom="15"</p>
+        <div class="url-display" id="url3"></div>
+        <iframe id="iframe3"></iframe>
+        <div id="status3"></div>
+    </div>
+    
+    <div class="test-section" id="test4">
+        <h2>🧪 Test 4: Satellite View (Tokyo)</h2>
+        <p>lat="35.6762" lng="139.6503" zoom="14" maptype="satellite"</p>
+        <div class="url-display" id="url4"></div>
+        <iframe id="iframe4"></iframe>
+        <div id="status4"></div>
+    </div>
+
+    <script>
+        // Plugin URL generation function (copied from our fixed plugin)
+        function generateEmbedUrl(params) {
+            const zoom = parseFloat(params.zoom || "13");
+            const language = params.language || "zh-CN";
+            const region = params.region || "s";
+            
+            function getMapTypeParam(maptype) {
+                switch (maptype) {
+                    case 'satellite': return '1';
+                    case 'hybrid': return '2';
+                    case 'terrain': return '4';
+                    case 'roadmap':
+                    default: return '0';
+                }
+            }
+            
+            if (params.lat && params.lng) {
+                const lat = parseFloat(params.lat);
+                const lng = parseFloat(params.lng);
+                
+                const distance = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+                const timestamp = Date.now();
+                const mapTypeParam = getMapTypeParam(params.maptype || "roadmap");
+                
+                const placeId = '0x0:0x0';
+                const placeName = `${lat},${lng}`;
+                
+                const pb = [
+                    '!1m18',
+                    '!1m12',
+                    '!1m3',
+                    `!1d${distance}`,
+                    `!2d${lng}`,
+                    `!3d${lat}`,
+                    '!2m3',
+                    '!1f0',
+                    '!2f0',
+                    '!3f0',
+                    '!3m2',
+                    '!1i1024',
+                    '!2i768',
+                    `!4f${zoom}.1`,
+                    '!3m3',
+                    '!1m2',
+                    `!1s${placeId}`,
+                    `!2s${encodeURIComponent(placeName)}`,
+                    `!5e${mapTypeParam}`,
+                    '!3m2',
+                    `!1s${language}`,
+                    `!2s${region}`,
+                    `!4v${timestamp}`,
+                    '!5m2',
+                    `!1s${language}`,
+                    `!2s${region}`
+                ].join('');
+                
+                return `https://www.google.com/maps/embed?pb=${pb}`;
+                
+            } else if (params.place) {
+                const timestamp = Date.now();
+                const mapTypeParam = getMapTypeParam(params.maptype || "roadmap");
+                const encodedPlace = encodeURIComponent(params.place);
+                const distance = 3000;
+                
+                const pb = [
+                    '!1m18',
+                    '!1m12',
+                    '!1m3',
+                    `!1d${distance}`,
+                    '!2d0',
+                    '!3d0',
+                    '!2m3',
+                    '!1f0',
+                    '!2f0',
+                    '!3f0',
+                    '!3m2',
+                    '!1i1024',
+                    '!2i768',
+                    `!4f${zoom}.1`,
+                    '!3m3',
+                    '!1m2',
+                    '!1s0x0:0x0',
+                    `!2s${encodedPlace}`,
+                    `!5e${mapTypeParam}`,
+                    '!3m2',
+                    `!1s${language}`,
+                    `!2s${region}`,
+                    `!4v${timestamp}`,
+                    '!5m2',
+                    `!1s${language}`,
+                    `!2s${region}`
+                ].join('');
+                
+                return `https://www.google.com/maps/embed?pb=${pb}`;
+            }
+            
+            return "";
+        }
+        
+        // Test cases
+        const tests = [
+            { id: 1, params: { lat: "39.9042", lng: "116.4074", zoom: "13" } },
+            { id: 2, params: { lat: "40.7128", lng: "-74.0060", zoom: "12" } },
+            { id: 3, params: { place: "Eiffel Tower, Paris", zoom: "15" } },
+            { id: 4, params: { lat: "35.6762", lng: "139.6503", zoom: "14", maptype: "satellite" } }
+        ];
+        
+        // Run tests
+        tests.forEach(test => {
+            const url = generateEmbedUrl(test.params);
+            const urlElement = document.getElementById(`url${test.id}`);
+            const iframeElement = document.getElementById(`iframe${test.id}`);
+            const statusElement = document.getElementById(`status${test.id}`);
+            const sectionElement = document.getElementById(`test${test.id}`);
+            
+            urlElement.textContent = url;
+            iframeElement.src = url;
+            
+            // Test iframe loading
+            iframeElement.onload = function() {
+                statusElement.innerHTML = '<span style="color: green;">✅ Loaded successfully</span>';
+                sectionElement.classList.add('success');
+                console.log(`✅ Test ${test.id} passed`);
+            };
+            
+            iframeElement.onerror = function() {
+                statusElement.innerHTML = '<span style="color: red;">❌ Failed to load</span>';
+                sectionElement.classList.add('error');
+                console.log(`❌ Test ${test.id} failed`);
+            };
+            
+            // Timeout check
+            setTimeout(() => {
+                if (!statusElement.innerHTML) {
+                    statusElement.innerHTML = '<span style="color: orange;">⏳ Loading...</span>';
+                }
+            }, 2000);
+        });
+        
+        console.log('🧪 Running Google Maps plugin tests...');
+    </script>
+</body>
+</html>

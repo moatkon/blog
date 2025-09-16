@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug PB Format</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .url-display { background: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 12px; }
+        iframe { width: 100%; height: 300px; border: 0; border-radius: 4px; margin: 10px 0; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Google Maps PB Format Debug</h1>
+    
+    <div class="comparison">
+        <div class="test-section">
+            <h2>✅ Working Example (Your Format)</h2>
+            <div class="url-display" id="working-url"></div>
+            <iframe id="working-iframe"></iframe>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 Our Generated Format</h2>
+            <div class="url-display" id="generated-url"></div>
+            <iframe id="generated-iframe"></iframe>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 PB Parameter Analysis</h2>
+        <div id="analysis"></div>
+    </div>
+
+    <script>
+        // Working example from your provided URL
+        const workingUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6204.450648988351!2d-77.08006951319453!3d38.96452265412205!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89b7c9a3b1d8124d%3A0x68ad77cf2b2381fd!2sThe%20Avalon%20Theatre!5e0!3m2!1szh-CN!2sus!4v1757989736646!5m2!1szh-CN!2sus";
+        
+        // Extract coordinates from working example
+        const workingLat = 38.96452265412205;
+        const workingLng = -77.08006951319453;
+        const workingZoom = 13.1;
+        
+        // Generate our URL using the same coordinates
+        function generateOurUrl(lat, lng, zoom) {
+            const distance = 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+            const timestamp = Date.now();
+            const language = 'zh-CN';
+            const region = 'us';
+            
+            const pb = [
+                '!1m18',
+                '!1m12',
+                '!1m3',
+                `!1d${distance.toFixed(15)}`,
+                `!2d${lng}`,
+                `!3d${lat}`,
+                '!2m3',
+                '!1f0',
+                '!2f0',
+                '!3f0',
+                '!3m2',
+                '!1i1024',
+                '!2i768',
+                `!4f${zoom}.1`,
+                '!5e0',
+                '!3m2',
+                `!1s${language}`,
+                `!2s${region}`,
+                `!4v${timestamp}`,
+                '!5m2',
+                `!1s${language}`,
+                `!2s${region}`
+            ].join('');
+            
+            return `https://www.google.com/maps/embed?pb=${pb}`;
+        }
+        
+        const generatedUrl = generateOurUrl(workingLat, workingLng, workingZoom);
+        
+        // Display URLs
+        document.getElementById('working-url').textContent = workingUrl;
+        document.getElementById('generated-url').textContent = generatedUrl;
+        
+        // Load iframes
+        document.getElementById('working-iframe').src = workingUrl;
+        document.getElementById('generated-iframe').src = generatedUrl;
+        
+        // Parse and compare PB parameters
+        function parsePbParameter(url) {
+            const pbMatch = url.match(/pb=([^&]+)/);
+            if (!pbMatch) return null;
+            
+            const pb = decodeURIComponent(pbMatch[1]);
+            const parts = pb.split('!').filter(p => p.length > 0);
+            
+            return {
+                raw: pb,
+                parts: parts,
+                analysis: {
+                    mapType: parts.find(p => p.startsWith('1m')),
+                    subType: parts.find(p => p.startsWith('1m') && p !== parts.find(p => p.startsWith('1m'))),
+                    distance: parts.find(p => p.startsWith('1d')),
+                    longitude: parts.find(p => p.startsWith('2d')),
+                    latitude: parts.find(p => p.startsWith('3d')),
+                    zoom: parts.find(p => p.startsWith('4f')),
+                    mapStyle: parts.find(p => p.startsWith('5e')),
+                    language: parts.filter(p => p.startsWith('1s')),
+                    region: parts.filter(p => p.startsWith('2s')),
+                    timestamp: parts.find(p => p.startsWith('4v'))
+                }
+            };
+        }
+        
+        const workingPb = parsePbParameter(workingUrl);
+        const generatedPb = parsePbParameter(generatedUrl);
+        
+        // Display analysis
+        document.getElementById('analysis').innerHTML = `
+            <h3>Working PB Parts:</h3>
+            <pre>${JSON.stringify(workingPb.analysis, null, 2)}</pre>
+            
+            <h3>Generated PB Parts:</h3>
+            <pre>${JSON.stringify(generatedPb.analysis, null, 2)}</pre>
+            
+            <h3>Key Differences:</h3>
+            <ul>
+                <li><strong>Distance:</strong> Working: ${workingPb.analysis.distance}, Generated: ${generatedPb.analysis.distance}</li>
+                <li><strong>Timestamp:</strong> Working: ${workingPb.analysis.timestamp}, Generated: ${generatedPb.analysis.timestamp}</li>
+                <li><strong>Structure:</strong> Working has ${workingPb.parts.length} parts, Generated has ${generatedPb.parts.length} parts</li>
+            </ul>
+            
+            <h3>Working PB Structure:</h3>
+            <div class="url-display">${workingPb.parts.join(' | ')}</div>
+            
+            <h3>Generated PB Structure:</h3>
+            <div class="url-display">${generatedPb.parts.join(' | ')}</div>
+        `;
+        
+        // Test iframe loading
+        document.getElementById('working-iframe').onload = () => console.log('✅ Working iframe loaded');
+        document.getElementById('working-iframe').onerror = () => console.log('❌ Working iframe failed');
+        
+        document.getElementById('generated-iframe').onload = () => console.log('✅ Generated iframe loaded');
+        document.getElementById('generated-iframe').onerror = () => console.log('❌ Generated iframe failed');
+    </script>
+</body>
+</html>
