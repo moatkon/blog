@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps Plugin Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .google-maps-container {
+            width: 100%;
+            min-height: 450px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+        .gm-loading-text {
+            color: #666;
+            font-size: 14px;
+        }
+        iframe {
+            border: 0;
+            width: 100%;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Google Maps Plugin Test</h1>
+    
+    <h2>Test 1: Using Coordinates (Beijing)</h2>
+    <p>Using latitude and longitude coordinates for Beijing:</p>
+    <div id="GM-test1" class="google-maps-container gm-loading" style="width: 100%; min-height: 450px; border-radius: 8px; overflow: hidden; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 1rem 0;">
+        <div class="gm-loading-text" style="color: #666; font-size: 14px;">Loading Google Maps...</div>
+    </div>
+
+    <h2>Test 2: Using Place Name</h2>
+    <p>Using a place name search:</p>
+    <div id="GM-test2" class="google-maps-container gm-loading" style="width: 100%; min-height: 450px; border-radius: 8px; overflow: hidden; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 1rem 0;">
+        <div class="gm-loading-text" style="color: #666; font-size: 14px;">Loading Google Maps...</div>
+    </div>
+
+    <h2>Test 3: Custom Height</h2>
+    <p>Custom height map of New York:</p>
+    <div id="GM-test3" class="google-maps-container gm-loading" style="width: 100%; min-height: 300px; border-radius: 8px; overflow: hidden; background: #f5f5f5; display: flex; align-items: center; justify-content: center; margin: 1rem 0;">
+        <div class="gm-loading-text" style="color: #666; font-size: 14px;">Loading Google Maps...</div>
+    </div>
+
+    <h2>Regular Content</h2>
+    <p>This is regular content to ensure the plugin doesn't interfere with normal text.</p>
+    <p>The maps above should only load if Google Maps is accessible from your network. If you're in a region where Google Maps is blocked, the map containers should not occupy any space on the page.</p>
+
+    <script>
+        // Test 1: Beijing coordinates
+        (function() {
+            const mapContainer = document.getElementById('GM-test1');
+            const embedUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3000!2d116.4074!3d39.9042!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f12.1!5e0!3m2!1sen!2sus';
+            
+            function testGoogleMapsAccess() {
+                return new Promise((resolve) => {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
+                    
+                    fetch('https://www.google.com/maps/embed', { 
+                        method: 'HEAD',
+                        signal: controller.signal,
+                        mode: 'no-cors'
+                    })
+                    .then(() => {
+                        clearTimeout(timeoutId);
+                        resolve(true);
+                    })
+                    .catch(() => {
+                        clearTimeout(timeoutId);
+                        resolve(false);
+                    });
+                });
+            }
+            
+            function loadMap() {
+                mapContainer.classList.remove('gm-loading');
+                mapContainer.classList.add('gm-loaded');
+                mapContainer.innerHTML = '';
+                
+                const iframe = document.createElement('iframe');
+                iframe.src = embedUrl;
+                iframe.width = '100%';
+                iframe.height = '450';
+                iframe.style.border = '0';
+                iframe.style.width = '100%';
+                iframe.style.borderRadius = '8px';
+                iframe.allowFullscreen = true;
+                iframe.loading = 'lazy';
+                iframe.referrerPolicy = 'no-referrer-when-downgrade';
+                
+                mapContainer.appendChild(iframe);
+            }
+            
+            function handleError() {
+                mapContainer.style.display = 'none';
+                mapContainer.style.height = '0';
+                mapContainer.style.margin = '0';
+                mapContainer.style.padding = '0';
+                console.log('[GOOGLE-MAPS] Google Maps is not accessible, hiding map container');
+            }
+            
+            testGoogleMapsAccess()
+                .then(accessible => {
+                    if (accessible) {
+                        loadMap();
+                    } else {
+                        handleError();
+                    }
+                })
+                .catch(() => {
+                    handleError();
+                });
+        })();
+
+        // Test 2: Eiffel Tower place
+        (function() {
+            const mapContainer = document.getElementById('GM-test2');
+            const embedUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3000!2d0!3d0!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f15.1!3m3!1m2!1s0x0%3A0x0!2sEiffel%20Tower%2C%20Paris!5e0!3m2!1sen!2sus';
+            
+            function testGoogleMapsAccess() {
+                return new Promise((resolve) => {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
+                    
+                    fetch('https://www.google.com/maps/embed', { 
+                        method: 'HEAD',
+                        signal: controller.signal,
+                        mode: 'no-cors'
+                    })
+                    .then(() => {
+                        clearTimeout(timeoutId);
+                        resolve(true);
+                    })
+                    .catch(() => {
+                        clearTimeout(timeoutId);
+                        resolve(false);
+                    });
+                });
+            }
+            
+            function loadMap() {
+                mapContainer.classList.remove('gm-loading');
+                mapContainer.classList.add('gm-loaded');
+                mapContainer.innerHTML = '';
+                
+                const iframe = document.createElement('iframe');
+                iframe.src = embedUrl;
+                iframe.width = '100%';
+                iframe.height = '450';
+                iframe.style.border = '0';
+                iframe.style.width = '100%';
+                iframe.style.borderRadius = '8px';
+                iframe.allowFullscreen = true;
+                iframe.loading = 'lazy';
+                iframe.referrerPolicy = 'no-referrer-when-downgrade';
+                
+                mapContainer.appendChild(iframe);
+            }
+            
+            function handleError() {
+                mapContainer.style.display = 'none';
+                mapContainer.style.height = '0';
+                mapContainer.style.margin = '0';
+                mapContainer.style.padding = '0';
+                console.log('[GOOGLE-MAPS] Google Maps is not accessible, hiding map container');
+            }
+            
+            testGoogleMapsAccess()
+                .then(accessible => {
+                    if (accessible) {
+                        loadMap();
+                    } else {
+                        handleError();
+                    }
+                })
+                .catch(() => {
+                    handleError();
+                });
+        })();
+
+        // Test 3: New York with custom height
+        (function() {
+            const mapContainer = document.getElementById('GM-test3');
+            const embedUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3000!2d-74.0060!3d40.7128!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f11.1!5e0!3m2!1sen!2sus';
+            
+            function testGoogleMapsAccess() {
+                return new Promise((resolve) => {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
+                    
+                    fetch('https://www.google.com/maps/embed', { 
+                        method: 'HEAD',
+                        signal: controller.signal,
+                        mode: 'no-cors'
+                    })
+                    .then(() => {
+                        clearTimeout(timeoutId);
+                        resolve(true);
+                    })
+                    .catch(() => {
+                        clearTimeout(timeoutId);
+                        resolve(false);
+                    });
+                });
+            }
+            
+            function loadMap() {
+                mapContainer.classList.remove('gm-loading');
+                mapContainer.classList.add('gm-loaded');
+                mapContainer.innerHTML = '';
+                
+                const iframe = document.createElement('iframe');
+                iframe.src = embedUrl;
+                iframe.width = '100%';
+                iframe.height = '300';
+                iframe.style.border = '0';
+                iframe.style.width = '100%';
+                iframe.style.borderRadius = '8px';
+                iframe.allowFullscreen = true;
+                iframe.loading = 'lazy';
+                iframe.referrerPolicy = 'no-referrer-when-downgrade';
+                
+                mapContainer.appendChild(iframe);
+            }
+            
+            function handleError() {
+                mapContainer.style.display = 'none';
+                mapContainer.style.height = '0';
+                mapContainer.style.margin = '0';
+                mapContainer.style.padding = '0';
+                console.log('[GOOGLE-MAPS] Google Maps is not accessible, hiding map container');
+            }
+            
+            testGoogleMapsAccess()
+                .then(accessible => {
+                    if (accessible) {
+                        loadMap();
+                    } else {
+                        handleError();
+                    }
+                })
+                .catch(() => {
+                    handleError();
+                });
+        })();
+    </script>
+</body>
+</html>
