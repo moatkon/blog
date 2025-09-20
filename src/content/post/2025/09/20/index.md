@@ -30,7 +30,7 @@ tags: ["周记"]
 
 
 ---
-_This is the first weekly journal._ Entry on September 20, 2025
+_This is the first weekly journal on moatkon's blog._ Entry on September 20, 2025
 
 
 
