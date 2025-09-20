@@ -26,3 +26,7 @@ pnpm-debug.log*
 
 package-lock.json
 pnpm-lock.yaml
+/.idea/.gitignore
+/.idea/blog.iml
+/.idea/modules.xml
+/.idea/vcs.xml
