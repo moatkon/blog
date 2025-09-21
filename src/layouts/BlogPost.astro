@@ -42,15 +42,22 @@ const { prevPost, nextPost } = getAdjacentPosts(post, allPosts);
 		<div id="blog-hero" class="mb-12">
 			<Masthead content={post} readingTime={readingTime} />
 		</div>
-		<div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
-			{!!headings.length && <TOC headings={headings} />}
-			<div
-				class="prose prose-sm prose-headings:font-semibold prose-headings:text-accent-2 prose-headings:before:absolute prose-headings:before:-ms-4 prose-headings:before:text-gray-600 prose-headings:hover:before:text-accent sm:prose-headings:before:content-['#'] sm:prose-th:before:content-none"
-			>
-				<slot />
-				<WebMentions />
-			</div>
-		</div>
+		{
+			!!headings.length ? (
+				<div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
+					<TOC headings={headings} />
+					<div class="prose prose-sm prose-headings:font-semibold prose-headings:text-accent-2 prose-headings:before:absolute prose-headings:before:-ms-4 prose-headings:before:text-gray-600 prose-headings:hover:before:text-accent sm:prose-headings:before:content-['#'] sm:prose-th:before:content-none">
+						<slot />
+						<WebMentions />
+					</div>
+				</div>
+			) : (
+				<div class="prose prose-sm prose-headings:font-semibold prose-headings:text-accent-2 prose-headings:before:absolute prose-headings:before:-ms-4 prose-headings:before:text-gray-600 prose-headings:hover:before:text-accent sm:prose-headings:before:content-['#'] sm:prose-th:before:content-none max-w-none">
+					<slot />
+					<WebMentions />
+				</div>
+			)
+		}
 	</article>
 	<PostNavigation prevPost={prevPost} nextPost={nextPost} />
 	<RelatedPosts currentPost={post} />
