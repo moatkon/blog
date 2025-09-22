@@ -2,12 +2,11 @@
 title: "记录老婆给朋友婚礼准备蛋糕摆台的历程"
 description: "记录老婆给朋友婚礼准备蛋糕摆台的历程"
 publishDate: "2025-09-22T00:10:21+08:00"
-draft: true
+draft: false
 tags: ["记录"]
 coverImage: 
   src: "/public/202509/cake.jpg"
   alt: "cake"
-#updatedDate: 22 Jan 2024
 ---
 > 上面的封面图是成品展示，借用了朋友发的朋友圈图片
 
