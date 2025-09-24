@@ -1,6 +1,7 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { Icon } from "astro-icon/components";
+import BackHome from "@/components/blog/BackHome.astro";
 
 interface Props {
 	prevPost: CollectionEntry<"post"> | null;
@@ -36,7 +37,7 @@ const { prevPost, nextPost } = Astro.props;
 						</div>
 					</a>
 				) : (
-					<div class="flex-1" />
+					<BackHome />
 				)}
 
 				{nextPost ? (
@@ -61,7 +62,7 @@ const { prevPost, nextPost } = Astro.props;
 						</div>*/}
 					</a>
 				) : (
-					<div class="flex-1" />
+					<BackHome />
 				)}
 			</div>
 		</nav>
