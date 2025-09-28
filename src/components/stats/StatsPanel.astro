@@ -242,7 +242,7 @@ const notesWritingPeriodDays =
 
 	<!-- Yearly Breakdown -->
 	{
-		Object.keys(stats.postsByYear).length > 1 && (
+		Object.keys(stats.postsByYear).length > 0 && (
 			<section>
 				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
 					Posts by Year
@@ -459,7 +459,7 @@ const notesWritingPeriodDays =
 
 	<!-- Notes Yearly Breakdown -->
 	{
-		stats.totalNotes > 0 && Object.keys(stats.notesByYear).length > 1 && (
+		stats.totalNotes > 0 && Object.keys(stats.notesByYear).length > 0 && (
 			<section>
 				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
 					Notes by Year
