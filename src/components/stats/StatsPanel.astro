@@ -240,6 +240,33 @@ const notesWritingPeriodDays =
 		</section>
 	</section>
 
+	<!-- Yearly Breakdown -->
+	{
+		Object.keys(stats.postsByYear).length > 1 && (
+			<section>
+				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+					Posts by Year
+				</h3>
+				<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6">
+					<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+						{Object.entries(stats.postsByYear)
+							.sort(([a], [b]) => parseInt(b) - parseInt(a))
+							.map(([year, count]) => (
+								<div class="text-center">
+									<div class="text-2xl font-bold text-gray-900 dark:text-white">
+										{count}
+									</div>
+									<div class="text-sm text-gray-600 dark:text-gray-400">
+										{year}
+									</div>
+								</div>
+							))}
+					</div>
+				</div>
+			</section>
+		)
+	}
+
 	<hr class="border-dashed mb-8" />
 
 	<!-- Notes Statistics -->
@@ -429,33 +456,6 @@ const notesWritingPeriodDays =
 			}
 		</div>
 	</section>
-
-	<!-- Yearly Breakdown -->
-	{
-		Object.keys(stats.postsByYear).length > 1 && (
-			<section>
-				<h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-					Posts by Year
-				</h3>
-				<div class="bg-white dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 p-6">
-					<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-						{Object.entries(stats.postsByYear)
-							.sort(([a], [b]) => parseInt(b) - parseInt(a))
-							.map(([year, count]) => (
-								<div class="text-center">
-									<div class="text-2xl font-bold text-gray-900 dark:text-white">
-										{count}
-									</div>
-									<div class="text-sm text-gray-600 dark:text-gray-400">
-										{year}
-									</div>
-								</div>
-							))}
-					</div>
-				</div>
-			</section>
-		)
-	}
 
 	<!-- Notes Yearly Breakdown -->
 	{
