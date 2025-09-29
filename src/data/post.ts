@@ -63,6 +63,27 @@ export function getUniqueTagsWithCount(posts: CollectionEntry<"post">[]): [strin
 	].sort((a, b) => b[1] - a[1]);
 }
 
+/** returns posts count by year - [[year, count], ...] sorted by year descending
+ *  Note: This function doesn't filter draft posts, pass it the result of getAllPosts above to do so.
+ *  */
+export function getPostsCountByYear(posts: CollectionEntry<"post">[]): [string, number][] {
+	const yearCounts = posts.reduce<Record<string, number>>((acc, post) => {
+		const year = post.data.publishDate.getFullYear().toString();
+		acc[year] = (acc[year] ?? 0) + 1;
+		return acc;
+	}, {});
+
+	return Object.entries(yearCounts).sort((a, b) => parseInt(b[0]) - parseInt(a[0]));
+}
+
+/** returns all unique years from posts
+ *  Note: This function doesn't filter draft posts, pass it the result of getAllPosts above to do so.
+ *  */
+export function getUniqueYears(posts: CollectionEntry<"post">[]): string[] {
+	const years = posts.map((post) => post.data.publishDate.getFullYear().toString());
+	return [...new Set(years)].sort((a, b) => parseInt(b) - parseInt(a));
+}
+
 /** Calculate similarity score between two posts based on shared tags
  *  Returns a score between 0 and 1, where 1 means identical tags
  */
