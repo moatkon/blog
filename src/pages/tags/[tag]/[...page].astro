@@ -14,7 +14,9 @@ export const getStaticPaths = (async ({ paginate }) => {
 	const uniqueTags = getUniqueTags(sortedPosts);
 
 	return uniqueTags.flatMap((tag) => {
-		const postsWithTag = sortedPosts.filter((post) => post.data.tags.includes(tag));
+		const postsWithTag = sortedPosts.filter((post) =>
+			post.data.tags.includes(tag),
+		);
 		return paginate(postsWithTag, {
 			pageSize: 10,
 			params: { tag },
@@ -31,20 +33,21 @@ const tagMeta = await getTagMeta(tag);
 const TagContent = tagMeta ? (await render(tagMeta)).Content : null;
 
 const meta = {
-	description: tagMeta?.data.description ?? `View all posts with the tag - ${tag}`,
+	description:
+		tagMeta?.data.description ?? `View all posts with the tag - ${tag}`,
 	title: tagMeta?.data.title ?? `Posts about ${tag}`,
 };
 
 const paginationProps = {
 	...(page.url.prev && {
 		prevUrl: {
-			text: "← Previous Tags",
+			text: "← Previous Page",
 			url: page.url.prev,
 		},
 	}),
 	...(page.url.next && {
 		nextUrl: {
-			text: "Next Tags →",
+			text: "Next Page →",
 			url: page.url.next,
 		},
 	}),
@@ -56,12 +59,20 @@ const paginationProps = {
 		<ul class="flex items-center">
 			<li class="flex items-center">
 				<a class="text-accent" href="/tags/">Tags</a>
-				<Icon aria-hidden="true" name="mdi:chevron-right" class="mx-1.5" />
+				<Icon
+					aria-hidden="true"
+					name="mdi:chevron-right"
+					class="mx-1.5"
+				/>
 			</li>
-			<li aria-current="page" class=""><span aria-hidden="true">#</span>{tag}</li>
+			<li aria-current="page" class="">
+				<span aria-hidden="true">#</span>{tag}
+			</li>
 		</ul>
 	</nav>
-	<h1 class="title capitalize">{tagMeta?.data.title ?? `Posts about ${tag}`}</h1>
+	<h1 class="title capitalize">
+		{tagMeta?.data.title ?? `Posts about ${tag}`}
+	</h1>
 	<div class="prose prose-sm prose-cactus mb-16 max-w-none">
 		{tagMeta?.data.description && <p>{tagMeta.data.description}</p>}
 		{TagContent && <TagContent />}
