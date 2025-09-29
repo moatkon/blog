@@ -1,0 +1,39 @@
+---
+export interface Props {
+	yearCounts: [string, number][];
+	title?: string;
+}
+
+const { yearCounts, title = "Posts by Year" } = Astro.props;
+---
+
+<div class="mb-6">
+	<h3 class="title mb-4 text-base font-medium">
+		{title}
+	</h3>
+	
+	{
+		yearCounts.length > 0 ? (
+			<ul class="space-y-2">
+				{yearCounts.map(([year, count]) => (
+					<li class="flex items-center justify-between">
+						<a
+							href={`/archive/${year}/`}
+							class="cactus-link hover:text-accent transition-colors"
+							title={`View posts from ${year}`}
+						>
+							{year}
+						</a>
+						<span class="text-sm text-gray-600 dark:text-gray-400">
+							({count})
+						</span>
+					</li>
+				))}
+			</ul>
+		) : (
+			<div class="text-center py-4 text-gray-500 dark:text-gray-400">
+				<p class="text-sm">No posts found</p>
+			</div>
+		)
+	}
+</div>
