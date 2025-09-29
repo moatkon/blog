@@ -253,12 +253,18 @@ const notesWritingPeriodDays =
 							.sort(([a], [b]) => parseInt(b) - parseInt(a))
 							.map(([year, count]) => (
 								<div class="text-center">
-									<div class="text-2xl font-bold text-gray-900 dark:text-white">
-										{count}
-									</div>
-									<div class="text-sm text-gray-600 dark:text-gray-400">
-										{year}
-									</div>
+									<a
+										class="text-lg font-medium"
+										href={`/archive/${year}/`}
+										title={`View all posts from ${year}`}
+									>
+										<div class="text-2xl font-bold text-gray-900 dark:text-white">
+											{count}
+										</div>
+										<div class="text-sm text-gray-600 dark:text-gray-400">
+											{year}
+										</div>
+									</a>
 								</div>
 							))}
 					</div>
