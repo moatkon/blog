@@ -30,11 +30,7 @@ export default defineConfig({
 		expressiveCode(expressiveCodeOptions),
 		icon(),
 		sitemap(),
-		mdx({
-			components: {
-				GoogleMap: "./src/components/GoogleMap.astro",
-			},
-		}),
+		mdx(),
 		robotsTxt(),
 		webmanifest({
 			// See: https://github.com/alextim/astro-lib/blob/main/packages/astro-webmanifest/README.md

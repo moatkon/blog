@@ -23,6 +23,8 @@ export const remarkGoogleMaps: Plugin<[], Root> = () => (tree) => {
 		const zoom = nodeAttributes.zoom || "13";
 		const maptype = nodeAttributes.maptype || "roadmap";
 		const language = nodeAttributes.language || nodeAttributes.lang || "zh-CN";
+		const timeout = nodeAttributes.timeout || "10";
+		const fallbackMessage = nodeAttributes.fallbackMessage || nodeAttributes.fallback || "地图加载失败，请检查网络连接或稍后重试";
 
 		// Validate that we have either src or placeId
 		if (!src && !placeId) {
@@ -30,7 +32,7 @@ export const remarkGoogleMaps: Plugin<[], Root> = () => (tree) => {
 			return;
 		}
 
-		// Create iframe element directly
+		// Create iframe element with basic error handling
 		const iframeProps: Record<string, string> = {
 			src: src || "",
 			width: width,

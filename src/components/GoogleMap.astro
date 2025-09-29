@@ -20,6 +20,10 @@ export interface Props {
 	maptype?: "roadmap" | "satellite" | "hybrid" | "terrain";
 	/** Language code */
 	language?: string;
+	/** Timeout in seconds for loading */
+	timeout?: number;
+	/** Fallback message when map fails to load */
+	fallbackMessage?: string;
 }
 
 const {
@@ -33,6 +37,8 @@ const {
 	zoom = 13,
 	maptype = "roadmap",
 	language = "zh-CN",
+	timeout = 10,
+	fallbackMessage = "地图加载失败，请检查网络连接或稍后重试",
 } = Astro.props;
 
 // Generate embed URL from place ID if provided
@@ -49,20 +55,53 @@ if (!embedUrl) {
 // Ensure width and height are properly formatted
 const formattedWidth = typeof width === "number" ? `${width}px` : width;
 const formattedHeight = typeof height === "number" ? `${height}px` : height;
+
+// Generate unique ID for this map instance
+const mapId = `google-map-${Math.random().toString(36).substr(2, 9)}`;
 ---
 
 {embedUrl ? (
-	<div class={`google-map-container ${className}`}>
+	<div class={`google-map-container ${className}`} id={mapId}>
+		<!-- Loading placeholder -->
+		<div class="google-map-loading" id={`${mapId}-loading`}>
+			<div class="flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg" style={`height: ${formattedHeight}`}>
+				<div class="text-center">
+					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto mb-2"></div>
+					<p class="text-sm text-gray-600 dark:text-gray-400">加载地图中...</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Error fallback (hidden by default) -->
+		<div class="google-map-error hidden" id={`${mapId}-error`}>
+			<div class="flex items-center justify-center bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg" style={`height: ${formattedHeight}`}>
+				<div class="text-center p-6">
+					<svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m0 0L9 7" />
+					</svg>
+					<p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{fallbackMessage}</p>
+					<button
+						class="text-xs text-accent hover:text-accent-dark underline cursor-pointer"
+						onclick={`retryGoogleMap('${mapId}')`}
+					>
+						点击重试
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Actual iframe (hidden by default) -->
 		<iframe
+			id={`${mapId}-iframe`}
 			src={embedUrl}
 			width={formattedWidth}
 			height={formattedHeight}
-			style="border:0;"
+			style="border:0; display: none;"
 			allowfullscreen=""
 			loading={loading}
 			referrerpolicy="no-referrer-when-downgrade"
 			title={title}
-			class="rounded-lg shadow-sm"
+			class="rounded-lg shadow-sm google-map-iframe"
 		></iframe>
 	</div>
 ) : (
@@ -75,17 +114,142 @@ const formattedHeight = typeof height === "number" ? `${height}px` : height;
 
 <style>
 	.google-map-container {
-		@apply my-6;
+		margin: 1.5rem 0;
+		position: relative;
+		min-height: 300px;
 	}
-	
-	.google-map-container iframe {
-		@apply w-full;
+
+	.google-map-container .google-map-iframe {
+		width: 100%;
 	}
-	
+
+	.google-map-loading,
+	.google-map-error {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 1;
+	}
+
+	.google-map-iframe {
+		position: relative;
+		z-index: 2;
+	}
+
 	/* Responsive adjustments */
 	@media (max-width: 640px) {
-		.google-map-container iframe {
-			height: 300px;
+		.google-map-container {
+			min-height: 250px;
+		}
+		.google-map-container .google-map-iframe {
+			height: 250px !important;
 		}
 	}
+
+	/* Loading animation */
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.animate-spin {
+		animation: spin 1s linear infinite;
+	}
 </style>
+
+<script define:vars={{ timeout, mapId }}>
+	// Global function to retry loading a map
+	window.retryGoogleMap = function(mapId) {
+		const container = document.getElementById(mapId);
+		if (!container) return;
+
+		const loading = container.querySelector(`#${mapId}-loading`);
+		const error = container.querySelector(`#${mapId}-error`);
+		const iframe = container.querySelector(`#${mapId}-iframe`);
+
+		if (loading && error && iframe) {
+			// Show loading, hide error
+			loading.classList.remove('hidden');
+			error.classList.add('hidden');
+
+			// Reset and reload iframe
+			const originalSrc = iframe.src;
+			iframe.src = '';
+			setTimeout(() => {
+				iframe.src = originalSrc;
+				setupGoogleMapHandlers(mapId, timeout);
+			}, 100);
+		}
+	};
+
+	// Setup handlers for a specific map
+	function setupGoogleMapHandlers(mapId, timeout) {
+		const container = document.getElementById(mapId);
+		if (!container) return;
+
+		const loading = container.querySelector(`#${mapId}-loading`);
+		const error = container.querySelector(`#${mapId}-error`);
+		const iframe = container.querySelector(`#${mapId}-iframe`);
+
+		if (!loading || !error || !iframe) return;
+
+		let timeoutId;
+		let isLoaded = false;
+
+		// Success handler
+		const handleLoad = () => {
+			if (isLoaded) return;
+			isLoaded = true;
+
+			clearTimeout(timeoutId);
+			loading.classList.add('hidden');
+			error.classList.add('hidden');
+			iframe.style.display = 'block';
+		};
+
+		// Error handler
+		const handleError = () => {
+			if (isLoaded) return;
+			isLoaded = true;
+
+			clearTimeout(timeoutId);
+			loading.classList.add('hidden');
+			error.classList.remove('hidden');
+			iframe.style.display = 'none';
+		};
+
+		// Timeout handler
+		timeoutId = setTimeout(() => {
+			if (!isLoaded) {
+				console.warn(`Google Map loading timeout after ${timeout} seconds for map: ${mapId}`);
+				handleError();
+			}
+		}, timeout * 1000);
+
+		// Add event listeners
+		iframe.addEventListener('load', handleLoad);
+		iframe.addEventListener('error', handleError);
+
+		// Cleanup function
+		const cleanup = () => {
+			clearTimeout(timeoutId);
+			iframe.removeEventListener('load', handleLoad);
+			iframe.removeEventListener('error', handleError);
+		};
+
+		// Store cleanup function for potential future use
+		iframe._cleanup = cleanup;
+	}
+
+	// Initialize when DOM is ready
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', () => {
+			setupGoogleMapHandlers(mapId, timeout);
+		});
+	} else {
+		setupGoogleMapHandlers(mapId, timeout);
+	}
+</script>
