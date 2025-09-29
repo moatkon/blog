@@ -1,0 +1,51 @@
+---
+import { getAllPosts, getPostsCountByYear } from "@/data/post";
+import PageLayout from "@/layouts/Base.astro";
+
+const allPosts = await getAllPosts();
+const yearCounts = getPostsCountByYear(allPosts);
+
+const meta = {
+	description: "Browse posts by year - archive of all blog posts organized chronologically",
+	title: "Archive",
+};
+---
+
+<PageLayout meta={meta}>
+	<h1 class="title mb-6">Archive</h1>
+	<div class="prose prose-sm prose-cactus mb-8 max-w-none">
+		<p>Browse all posts organized by year.</p>
+	</div>
+	
+	<ul class="space-y-4">
+		{
+			yearCounts.map(([year, count]) => (
+				<li class="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+					<div>
+						<a
+							class="cactus-link text-lg font-medium"
+							href={`/archive/${year}/`}
+							title={`View all posts from ${year}`}
+						>
+							{year}
+						</a>
+						<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+							{count} post{count > 1 ? "s" : ""} published
+						</p>
+					</div>
+					<div class="text-2xl font-bold text-gray-400 dark:text-gray-600">
+						{count}
+					</div>
+				</li>
+			))
+		}
+	</ul>
+	
+	{
+		yearCounts.length === 0 && (
+			<div class="text-center py-8 text-gray-500 dark:text-gray-400">
+				<p>No posts found</p>
+			</div>
+		)
+	}
+</PageLayout>
