@@ -1,0 +1,91 @@
+---
+export interface Props {
+	/** Google Maps embed URL or place ID */
+	src?: string;
+	/** Place ID for Google Maps (alternative to src) */
+	placeId?: string;
+	/** Map width */
+	width?: string | number;
+	/** Map height */
+	height?: string | number;
+	/** Map title for accessibility */
+	title?: string;
+	/** Loading behavior */
+	loading?: "lazy" | "eager";
+	/** Custom CSS classes */
+	class?: string;
+	/** Map zoom level (1-20) */
+	zoom?: number;
+	/** Map type */
+	maptype?: "roadmap" | "satellite" | "hybrid" | "terrain";
+	/** Language code */
+	language?: string;
+}
+
+const {
+	src,
+	placeId,
+	width = "100%",
+	height = 450,
+	title = "Google Map",
+	loading = "lazy",
+	class: className = "",
+	zoom = 13,
+	maptype = "roadmap",
+	language = "zh-CN",
+} = Astro.props;
+
+// Generate embed URL from place ID if provided
+let embedUrl = src;
+if (placeId && !src) {
+	embedUrl = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=place_id:${placeId}&zoom=${zoom}&maptype=${maptype}&language=${language}`;
+}
+
+// If neither src nor placeId is provided, show error
+if (!embedUrl) {
+	console.warn("GoogleMap component: Either 'src' or 'placeId' prop is required");
+}
+
+// Ensure width and height are properly formatted
+const formattedWidth = typeof width === "number" ? `${width}px` : width;
+const formattedHeight = typeof height === "number" ? `${height}px` : height;
+---
+
+{embedUrl ? (
+	<div class={`google-map-container ${className}`}>
+		<iframe
+			src={embedUrl}
+			width={formattedWidth}
+			height={formattedHeight}
+			style="border:0;"
+			allowfullscreen=""
+			loading={loading}
+			referrerpolicy="no-referrer-when-downgrade"
+			title={title}
+			class="rounded-lg shadow-sm"
+		></iframe>
+	</div>
+) : (
+	<div class={`google-map-error p-4 border border-red-300 rounded-lg bg-red-50 dark:bg-red-900/20 dark:border-red-700 ${className}`}>
+		<p class="text-red-700 dark:text-red-300">
+			<strong>Google Map Error:</strong> Please provide either a 'src' or 'placeId' prop.
+		</p>
+	</div>
+)}
+
+<style>
+	.google-map-container {
+		@apply my-6;
+	}
+	
+	.google-map-container iframe {
+		@apply w-full;
+	}
+	
+	/* Responsive adjustments */
+	@media (max-width: 640px) {
+		.google-map-container iframe {
+			height: 300px;
+		}
+	}
+</style>
