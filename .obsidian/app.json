@@ -1,3 +1,6 @@
 {
-  "promptDelete": false
+  "promptDelete": false,
+  "livePreview": false,
+  "propertiesInDocument": "source",
+  "useMarkdownLinks": true
 }

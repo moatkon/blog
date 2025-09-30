@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "src/content/note/2025/10/1.md",
+                "file": "src/content/note/2025/08/07.md",
                 "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "1"
+              "title": "07"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "src/content/note/2025/10/1.md",
+                "file": "src/content/note/2025/08/07.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "1 的反向链接列表"
+              "title": "07 的反向链接列表"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "src/content/note/2025/10/1.md",
+                "file": "src/content/note/2025/08/07.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "1 的出链列表"
+              "title": "07 的出链列表"
             }
           },
           {
@@ -142,13 +142,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "src/content/note/2025/10/1.md",
+                "file": "src/content/note/2025/08/07.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "1 的大纲"
+              "title": "07 的大纲"
             }
           }
         ]
@@ -171,8 +171,8 @@
   },
   "active": "b41d89d938b794ee",
   "lastOpenFiles": [
-    "src/content/note/三分法则.md",
     "src/content/note/2025/10/1.md",
+    "src/content/note/三分法则.md",
     "src/content/note/2025/09/18.md",
     "src/content/note/2025/08/15.md",
     "src/content/note/2025/08/14.md",
