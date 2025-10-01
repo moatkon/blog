@@ -1,3 +1,6 @@
 {
-  "translucency": false
+  "translucency": false,
+  "theme": "moonstone",
+  "accentColor": "",
+  "cssTheme": "Flexoki"
 }
