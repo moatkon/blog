@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "86ed3283e1db1c92",
+        "id": "eb8ae26a67f24b63",
         "type": "tabs",
         "children": [
           {
-            "id": "6e02810fad2f47ca",
+            "id": "605a39061d41d4be",
             "type": "leaf",
             "state": {
               "type": "empty",
@@ -74,7 +74,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 383.5
   },
   "right": {
     "id": "d939fa6958db6243",
@@ -132,15 +132,15 @@
       "bases:创建新数据库": true
     }
   },
-  "active": "60a3c61ac7b509ba",
+  "active": "605a39061d41d4be",
   "lastOpenFiles": [
+    "src/content/note/2025/10/1.md",
     "README.md",
     "INSTALL.md",
     "Giscus.md",
     "未命名.base",
     "未命名 1.base",
     "src/content/note/2025/08/07.md",
-    "src/content/note/2025/10/1.md",
     "src/content/note/三分法则.md",
     "src/content/note/2025/09/18.md",
     "src/content/note/2025/08/15.md",

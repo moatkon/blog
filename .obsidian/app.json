@@ -2,5 +2,11 @@
   "promptDelete": false,
   "livePreview": false,
   "propertiesInDocument": "source",
-  "useMarkdownLinks": true
+  "useMarkdownLinks": true,
+  "showUnsupportedFiles": false,
+  "userIgnoreFilters": [
+    "src/components/",
+    "node_modules/",
+    "docs/"
+  ]
 }
