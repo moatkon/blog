@@ -99,21 +99,39 @@ export async function generateFilePath(baseDir, type, title, date = new Date()) 
 
   switch (type) {
     case 'post':
-      // 对于post，如果当天已有文件，在目录名后加数字
-      do {
-        const dirName = counter === 0 ? day : `${day}-${counter}`;
-        filePath = path.join(baseDir, String(year), month, dirName, 'index.md');
-        counter++;
-      } while (await fs.pathExists(filePath));
+      // Posts: /YYYY/MM/DD/index.md, 然后 1.md, 2.md, 3.md...
+      const postDir = path.join(baseDir, String(year), month, day);
+      const indexPath = path.join(postDir, 'index.md');
+
+      if (!await fs.pathExists(indexPath)) {
+        // 如果index.md不存在，创建index.md
+        filePath = indexPath;
+      } else {
+        // 如果index.md已存在，按数字序列创建：1.md, 2.md, 3.md...
+        let number = 1;
+        do {
+          filePath = path.join(postDir, `${number}.md`);
+          number++;
+        } while (await fs.pathExists(filePath));
+      }
       break;
 
     case 'note':
-      // 对于note，如果当天已有文件，在文件名后加数字
-      do {
-        const noteFileName = counter === 0 ? `${month}-${day}.md` : `${month}-${day}-${counter}.md`;
-        filePath = path.join(baseDir, String(year), noteFileName);
-        counter++;
-      } while (await fs.pathExists(filePath));
+      // Notes: /YYYY/MM/DD/index.md, 然后 1.md, 2.md, 3.md...
+      const noteDir = path.join(baseDir, String(year), month, day);
+      const noteIndexPath = path.join(noteDir, 'index.md');
+
+      if (!await fs.pathExists(noteIndexPath)) {
+        // 如果index.md不存在，创建index.md
+        filePath = noteIndexPath;
+      } else {
+        // 如果index.md已存在，按数字序列创建：1.md, 2.md, 3.md...
+        let number = 1;
+        do {
+          filePath = path.join(noteDir, `${number}.md`);
+          number++;
+        } while (await fs.pathExists(filePath));
+      }
       break;
 
     case 'tag':
