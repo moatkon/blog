@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Plus, Edit, Trash2, Eye, Search, Filter } from 'lucide-react'
 import { postsAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
 const Posts = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [posts, setPosts] = useState([])
   const [filteredPosts, setFilteredPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filter, setFilter] = useState('all') // all, published, draft
+  const [filter, setFilter] = useState(searchParams.get('filter') || 'all') // all, published, draft
 
   useEffect(() => {
     loadPosts()
   }, [])
+
+  useEffect(() => {
+    // 监听URL参数变化
+    const filterParam = searchParams.get('filter')
+    if (filterParam && filterParam !== filter) {
+      setFilter(filterParam)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     filterPosts()
@@ -123,7 +132,17 @@ const Posts = () => {
           <Filter className="h-4 w-4 text-gray-400" />
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => {
+              const newFilter = e.target.value
+              setFilter(newFilter)
+              // 更新URL参数
+              if (newFilter === 'all') {
+                searchParams.delete('filter')
+              } else {
+                searchParams.set('filter', newFilter)
+              }
+              setSearchParams(searchParams)
+            }}
             className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">全部</option>

@@ -138,8 +138,8 @@ const Assets = () => {
   }
 
   const copyFileUrl = async (item) => {
-    // 复制基于public目录的相对路径，用于markdown中引用
-    const filePath = currentPath ? `${currentPath}/${item.name}` : item.name
+    // 复制基于public目录的绝对路径，用于markdown中引用
+    const filePath = currentPath ? `/${currentPath}/${item.name}` : `/${item.name}`
 
     try {
       await navigator.clipboard.writeText(filePath)

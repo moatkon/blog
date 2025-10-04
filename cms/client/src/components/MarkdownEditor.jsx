@@ -29,8 +29,8 @@ const MarkdownEditor = ({ value, onChange, placeholder = "开始写作..." }) =>
         formData.append('folder', 'images') // 上传到images文件夹
 
         const response = await assetsAPI.upload(formData)
-        // 由于文件上传到public目录，直接使用相对路径
-        const imageUrl = response.data.file.path
+        // 由于文件上传到public目录，使用以/开头的绝对路径
+        const imageUrl = `/${response.data.file.path}`
 
         // 插入markdown图片语法到当前光标位置
         const textarea = textareaRef.current
