@@ -10,7 +10,8 @@ import {
   Eye,
   Download,
   Search,
-  Copy
+  Copy,
+  Edit3
 } from 'lucide-react'
 import { assetsAPI } from '../services/api'
 import toast from 'react-hot-toast'
@@ -23,6 +24,9 @@ const Assets = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [showNewFolderModal, setShowNewFolderModal] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  const [showRenameModal, setShowRenameModal] = useState(false)
+  const [renameItem, setRenameItem] = useState(null)
+  const [newName, setNewName] = useState('')
 
   useEffect(() => {
     loadAssets()
@@ -114,6 +118,29 @@ const Assets = () => {
     const pathParts = currentPath.split('/')
     pathParts.pop()
     setCurrentPath(pathParts.join('/'))
+  }
+
+  const handleRename = (item) => {
+    setRenameItem(item)
+    setNewName(item.name)
+    setShowRenameModal(true)
+  }
+
+  const executeRename = async () => {
+    if (!renameItem || !newName.trim()) return
+
+    try {
+      const itemPath = currentPath ? `${currentPath}/${renameItem.name}` : renameItem.name
+      await assetsAPI.rename(itemPath, newName.trim())
+      toast.success('重命名成功')
+      setShowRenameModal(false)
+      setRenameItem(null)
+      setNewName('')
+      loadAssets()
+    } catch (error) {
+      console.error('Error renaming item:', error)
+      toast.error(error.response?.data?.error || '重命名失败')
+    }
   }
 
   const getFileIcon = (item) => {
@@ -287,6 +314,13 @@ const Assets = () => {
                     </>
                   )}
                   <button
+                    onClick={() => handleRename(item)}
+                    className="p-1 text-gray-400 hover:text-blue-600"
+                    title="重命名"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </button>
+                  <button
                     onClick={() => handleDelete(item)}
                     className="p-1 text-gray-400 hover:text-red-600"
                     title="删除"
@@ -369,6 +403,50 @@ const Assets = () => {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
                   创建
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 重命名模态框 */}
+      {showRenameModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                重命名 {renameItem?.type === 'directory' ? '文件夹' : '文件'}
+              </h3>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="输入新名称"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    executeRename()
+                  }
+                }}
+              />
+              <div className="flex justify-end space-x-3 mt-4">
+                <button
+                  onClick={() => {
+                    setShowRenameModal(false)
+                    setRenameItem(null)
+                    setNewName('')
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={executeRename}
+                  disabled={!newName.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  重命名
                 </button>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Upload, Folder, ArrowLeft, Image as ImageIcon } from 'lucide-react'
+import { X, Upload, Folder, ArrowLeft, Image as ImageIcon, Edit3, Trash2 } from 'lucide-react'
 import { assetsAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
@@ -8,6 +8,9 @@ const ImagePickerModal = ({ isOpen, onClose, onSelectImage }) => {
   const [loading, setLoading] = useState(false)
   const [currentPath, setCurrentPath] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [showRenameModal, setShowRenameModal] = useState(false)
+  const [renameItem, setRenameItem] = useState(null)
+  const [newName, setNewName] = useState('')
 
   useEffect(() => {
     if (isOpen) {
@@ -84,6 +87,48 @@ const ImagePickerModal = ({ isOpen, onClose, onSelectImage }) => {
     onClose()
   }
 
+  const handleRename = (item, e) => {
+    e.stopPropagation() // 防止触发选择事件
+    setRenameItem(item)
+    setNewName(item.name)
+    setShowRenameModal(true)
+  }
+
+  const executeRename = async () => {
+    if (!renameItem || !newName.trim()) return
+
+    try {
+      const itemPath = currentPath ? `${currentPath}/${renameItem.name}` : renameItem.name
+      await assetsAPI.rename(itemPath, newName.trim())
+      toast.success('重命名成功')
+      setShowRenameModal(false)
+      setRenameItem(null)
+      setNewName('')
+      loadAssets()
+    } catch (error) {
+      console.error('Error renaming item:', error)
+      toast.error(error.response?.data?.error || '重命名失败')
+    }
+  }
+
+  const handleDelete = async (item, e) => {
+    e.stopPropagation() // 防止触发选择事件
+
+    if (!window.confirm(`确定要删除 "${item.name}" 吗？`)) {
+      return
+    }
+
+    try {
+      const itemPath = currentPath ? `${currentPath}/${item.name}` : item.name
+      await assetsAPI.delete(itemPath)
+      toast.success('删除成功')
+      loadAssets()
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      toast.error('删除失败')
+    }
+  }
+
   const isImage = (filename) => {
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.bmp']
     return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext))
@@ -152,12 +197,31 @@ const ImagePickerModal = ({ isOpen, onClose, onSelectImage }) => {
               {assets.map((item, index) => (
                 <div key={index} className="group">
                   {item.type === 'directory' ? (
-                    <div
-                      onClick={() => handleFolderClick(item.name)}
-                      className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer transition-colors"
-                    >
-                      <Folder className="h-12 w-12 text-blue-500 mb-2" />
-                      <span className="text-sm text-center break-all">{item.name}</span>
+                    <div className="relative group">
+                      <div
+                        onClick={() => handleFolderClick(item.name)}
+                        className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer transition-colors"
+                      >
+                        <Folder className="h-12 w-12 text-blue-500 mb-2" />
+                        <span className="text-sm text-center break-all">{item.name}</span>
+                      </div>
+                      {/* 操作按钮 */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+                        <button
+                          onClick={(e) => handleRename(item, e)}
+                          className="p-1 bg-white rounded shadow hover:bg-gray-50"
+                          title="重命名"
+                        >
+                          <Edit3 className="h-3 w-3 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDelete(item, e)}
+                          className="p-1 bg-white rounded shadow hover:bg-gray-50"
+                          title="删除"
+                        >
+                          <Trash2 className="h-3 w-3 text-red-600" />
+                        </button>
+                      </div>
                     </div>
                   ) : isImage(item.name) ? (
                     <div
@@ -182,6 +246,23 @@ const ImagePickerModal = ({ isOpen, onClose, onSelectImage }) => {
                         <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
                           选择
                         </span>
+                      </div>
+                      {/* 操作按钮 */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+                        <button
+                          onClick={(e) => handleRename(item, e)}
+                          className="p-1 bg-white rounded shadow hover:bg-gray-50"
+                          title="重命名"
+                        >
+                          <Edit3 className="h-3 w-3 text-gray-600" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDelete(item, e)}
+                          className="p-1 bg-white rounded shadow hover:bg-gray-50"
+                          title="删除"
+                        >
+                          <Trash2 className="h-3 w-3 text-red-600" />
+                        </button>
                       </div>
                       <p className="mt-1 text-xs text-center break-all">{item.name}</p>
                     </div>
@@ -219,6 +300,48 @@ const ImagePickerModal = ({ isOpen, onClose, onSelectImage }) => {
           </div>
         </div>
       </div>
+
+      {/* 重命名弹窗 */}
+      {showRenameModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold mb-4">
+              重命名 {renameItem?.type === 'directory' ? '文件夹' : '文件'}
+            </h3>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="输入新名称"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  executeRename()
+                }
+              }}
+            />
+            <div className="flex justify-end space-x-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowRenameModal(false)
+                  setRenameItem(null)
+                  setNewName('')
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                取消
+              </button>
+              <button
+                onClick={executeRename}
+                disabled={!newName.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                重命名
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

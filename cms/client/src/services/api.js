@@ -40,6 +40,7 @@ export const assetsAPI = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   createFolder: (data) => api.post('/assets/folder', data),
+  rename: (oldPath, newName) => api.put('/assets/rename', { oldPath, newName }),
   delete: (path) => api.delete(`/assets/${path}`),
   preview: (path) => `/api/assets/preview/${path}`
 }

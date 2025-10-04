@@ -154,6 +154,61 @@ router.post('/folder', async (req, res) => {
   }
 });
 
+// 重命名文件或文件夹
+router.put('/rename', async (req, res) => {
+  try {
+    const { oldPath, newName } = req.body;
+
+    if (!oldPath || !newName) {
+      return res.status(400).json({ error: '缺少必要参数' });
+    }
+
+    const oldFullPath = path.join(CONTENT_PATHS.assets, oldPath);
+    const parentDir = path.dirname(oldFullPath);
+    const newFullPath = path.join(parentDir, newName);
+
+    // 安全检查
+    if (!oldFullPath.startsWith(CONTENT_PATHS.assets) || !newFullPath.startsWith(CONTENT_PATHS.assets)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // 检查原文件是否存在
+    if (!await fs.pathExists(oldFullPath)) {
+      return res.status(404).json({ error: '原文件不存在' });
+    }
+
+    // 检查新文件名是否已存在
+    if (await fs.pathExists(newFullPath)) {
+      return res.status(409).json({ error: '目标文件名已存在' });
+    }
+
+    // 验证文件名（不能包含特殊字符）
+    const invalidChars = /[<>:"/\\|?*]/;
+    if (invalidChars.test(newName)) {
+      return res.status(400).json({ error: '文件名包含无效字符' });
+    }
+
+    // 执行重命名
+    await fs.move(oldFullPath, newFullPath);
+
+    // 返回新的文件信息
+    const stats = await fs.stat(newFullPath);
+    const newPath = path.relative(CONTENT_PATHS.assets, newFullPath).replace(/\\/g, '/');
+
+    res.json({
+      message: '重命名成功',
+      newPath: newPath,
+      name: newName,
+      type: stats.isDirectory() ? 'directory' : 'file',
+      size: stats.isDirectory() ? undefined : stats.size,
+      modifiedAt: stats.mtime.toISOString()
+    });
+  } catch (error) {
+    console.error('Rename error:', error);
+    res.status(500).json({ error: '重命名失败' });
+  }
+});
+
 // 删除文件或文件夹
 router.delete('/*', async (req, res) => {
   try {
