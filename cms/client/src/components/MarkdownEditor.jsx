@@ -4,11 +4,12 @@ import remarkGfm from 'remark-gfm'
 import { Eye, Edit, Image, Upload } from 'lucide-react'
 import { assetsAPI } from '../services/api'
 import toast from 'react-hot-toast'
+import ImagePickerModal from './ImagePickerModal'
 
 const MarkdownEditor = ({ value, onChange, placeholder = "开始写作..." }) => {
   const [isPreview, setIsPreview] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef(null)
+  const [showImagePicker, setShowImagePicker] = useState(false)
   const textareaRef = useRef(null)
 
   const handleImageUpload = async (files) => {
@@ -58,10 +59,7 @@ const MarkdownEditor = ({ value, onChange, placeholder = "开始写作..." }) =>
     setUploading(false)
   }
 
-  const handleFileInputChange = (e) => {
-    handleImageUpload(e.target.files)
-    e.target.value = '' // 清空input，允许重复上传同一文件
-  }
+
 
   const handleDrop = (e) => {
     e.preventDefault()
@@ -71,6 +69,29 @@ const MarkdownEditor = ({ value, onChange, placeholder = "开始写作..." }) =>
 
   const handleDragOver = (e) => {
     e.preventDefault()
+  }
+
+  const handleImageSelect = (imagePath) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const currentValue = value || ''
+
+    // 生成图片markdown语法
+    const imageMarkdown = `![图片描述](${imagePath})`
+
+    // 插入到光标位置
+    const newValue = currentValue.substring(0, start) + imageMarkdown + currentValue.substring(end)
+    onChange(newValue)
+
+    // 恢复光标位置
+    setTimeout(() => {
+      textarea.focus()
+      const newCursorPos = start + imageMarkdown.length
+      textarea.setSelectionRange(newCursorPos, newCursorPos)
+    }, 0)
   }
 
   return (
@@ -104,27 +125,14 @@ const MarkdownEditor = ({ value, onChange, placeholder = "开始写作..." }) =>
         </div>
 
         <div className="flex items-center space-x-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileInputChange}
-            className="hidden"
-          />
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
-            title="上传图片"
+            onClick={() => setShowImagePicker(true)}
+            className="flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
+            title="插入图片"
           >
-            {uploading ? (
-              <Upload className="w-4 h-4 mr-1 animate-spin" />
-            ) : (
-              <Image className="w-4 h-4 mr-1" />
-            )}
-            {uploading ? '上传中...' : '图片'}
+            <Image className="w-4 h-4 mr-1" />
+            图片
           </button>
         </div>
       </div>
@@ -190,6 +198,13 @@ const MarkdownEditor = ({ value, onChange, placeholder = "开始写作..." }) =>
           </div>
         )}
       </div>
+
+      {/* 图片选择弹窗 */}
+      <ImagePickerModal
+        isOpen={showImagePicker}
+        onClose={() => setShowImagePicker(false)}
+        onSelectImage={handleImageSelect}
+      />
     </div>
   )
 }
