@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'path';
-import { CONTENT_PATHS, DEFAULT_FRONTMATTER } from '../config.js';
+import { CONTENT_PATHS, getDefaultFrontmatter, getBeijingTime } from '../config.js';
 import { 
   getAllMarkdownFiles, 
   readMarkdownFile, 
@@ -21,13 +21,17 @@ router.get('/', async (req, res) => {
       const post = await readMarkdownFile(file);
       if (post) {
         const relativePath = path.relative(CONTENT_PATHS.posts, file);
+        // 将文件系统时间戳转换为北京时间
+        const createdAt = new Date(post.stats.birthtime.getTime() + (8 * 60 * 60 * 1000));
+        const modifiedAt = new Date(post.stats.mtime.getTime() + (8 * 60 * 60 * 1000));
+
         posts.push({
           id: relativePath.replace(/\\/g, '/'),
           ...post.frontmatter,
           body: post.body,
           filePath: file,
-          createdAt: post.stats.birthtime,
-          modifiedAt: post.stats.mtime
+          createdAt: createdAt.toISOString(),
+          modifiedAt: modifiedAt.toISOString()
         });
       }
     }
@@ -74,7 +78,7 @@ router.post('/', async (req, res) => {
     }
     
     const frontmatter = {
-      ...DEFAULT_FRONTMATTER.post,
+      ...getDefaultFrontmatter('post'),
       title,
       description: description || title,
       draft,

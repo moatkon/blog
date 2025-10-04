@@ -18,23 +18,37 @@ export const CONTENT_PATHS = {
 // 支持的文件扩展名
 export const SUPPORTED_EXTENSIONS = ['.md', '.mdx'];
 
-// 默认的frontmatter模板
-export const DEFAULT_FRONTMATTER = {
-  post: {
-    title: '',
-    description: '',
-    publishDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
-    draft: true,
-    tags: [],
-    pinned: false
-  },
-  note: {
-    title: '',
-    description: '',
-    publishDate: new Date().toISOString()
-  },
-  tag: {
-    title: '',
-    description: ''
-  }
-};
+// 获取北京时间的工具函数
+export function getBeijingTime() {
+  const now = new Date();
+  // 北京时间是UTC+8
+  const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+  return beijingTime.toISOString().replace('T', ' ').slice(0, 19);
+}
+
+// 默认的frontmatter模板生成函数
+export function getDefaultFrontmatter(type) {
+  const currentTime = getBeijingTime();
+
+  const templates = {
+    post: {
+      title: '',
+      description: '',
+      publishDate: currentTime,
+      draft: true,
+      tags: [],
+      pinned: false
+    },
+    note: {
+      title: '',
+      description: '',
+      publishDate: currentTime
+    },
+    tag: {
+      title: '',
+      description: ''
+    }
+  };
+
+  return templates[type] || {};
+}

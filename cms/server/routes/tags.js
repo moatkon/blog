@@ -1,6 +1,6 @@
 import express from 'express';
 import path from 'path';
-import { CONTENT_PATHS, DEFAULT_FRONTMATTER } from '../config.js';
+import { CONTENT_PATHS, getDefaultFrontmatter, getBeijingTime } from '../config.js';
 import { 
   getAllMarkdownFiles, 
   readMarkdownFile, 
@@ -79,7 +79,7 @@ router.post('/', async (req, res) => {
     }
     
     const frontmatter = {
-      ...DEFAULT_FRONTMATTER.tag,
+      ...getDefaultFrontmatter('tag'),
       title: title || name,
       description: description || ''
     };
