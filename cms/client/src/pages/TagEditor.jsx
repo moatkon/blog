@@ -72,7 +72,8 @@ const TagEditor = () => {
       navigate('/tags')
     } catch (error) {
       console.error('Error saving tag:', error)
-      toast.error(isEditing ? '更新Tag失败' : '创建Tag失败')
+      const errorMessage = error.response?.data?.error || (isEditing ? '更新Tag失败' : '创建Tag失败')
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }

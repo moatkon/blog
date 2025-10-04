@@ -85,9 +85,9 @@ export async function generateFilePath(baseDir, type, title, date = new Date()) 
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
 
-  let fileName = title.toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
+  let fileName = title
+    .replace(/[<>:"/\\|?*]/g, '')  // 只移除文件系统不允许的字符
+    .replace(/\s+/g, '-')          // 将空格替换为连字符
     .trim();
 
   if (!fileName) {

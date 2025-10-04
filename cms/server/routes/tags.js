@@ -73,23 +73,34 @@ router.get('/:id(*)', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, title, description, body } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: 'Tag name is required' });
     }
-    
+
+    // 检查是否已存在同名的tag
+    const existingTags = await getAllMarkdownFiles(CONTENT_PATHS.tags);
+    const tagExists = existingTags.some(file => {
+      const tagName = path.basename(file, path.extname(file));
+      return tagName.toLowerCase() === name.toLowerCase();
+    });
+
+    if (tagExists) {
+      return res.status(409).json({ error: `标签 "${name}" 已存在，不能创建重复的标签` });
+    }
+
     const frontmatter = {
       ...getDefaultFrontmatter('tag'),
       title: title || name,
       description: description || ''
     };
-    
+
     const filePath = await generateFilePath(CONTENT_PATHS.tags, 'tag', name);
     const success = await writeMarkdownFile(filePath, frontmatter, body || '');
-    
+
     if (success) {
       const relativePath = path.relative(CONTENT_PATHS.tags, filePath);
-      res.json({ 
+      res.json({
         id: relativePath.replace(/\\/g, '/'),
         message: 'Tag created successfully',
         filePath
