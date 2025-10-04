@@ -138,21 +138,21 @@ const Assets = () => {
   }
 
   const copyFileUrl = async (item) => {
+    // 复制基于public目录的相对路径，用于markdown中引用
     const filePath = currentPath ? `${currentPath}/${item.name}` : item.name
-    const fileUrl = `${window.location.origin}/api/assets/preview/${filePath}`
 
     try {
-      await navigator.clipboard.writeText(fileUrl)
-      toast.success('文件地址已复制到剪贴板')
+      await navigator.clipboard.writeText(filePath)
+      toast.success(`已复制路径: ${filePath}`)
     } catch (error) {
       // 如果clipboard API不可用，使用fallback方法
       const textArea = document.createElement('textarea')
-      textArea.value = fileUrl
+      textArea.value = filePath
       document.body.appendChild(textArea)
       textArea.select()
       document.execCommand('copy')
       document.body.removeChild(textArea)
-      toast.success('文件地址已复制到剪贴板')
+      toast.success(`已复制路径: ${filePath}`)
     }
   }
 
@@ -280,7 +280,7 @@ const Assets = () => {
                       <button
                         onClick={() => copyFileUrl(item)}
                         className="p-1 text-gray-400 hover:text-blue-600"
-                        title="复制地址"
+                        title="复制文件路径（用于markdown）"
                       >
                         <Copy className="h-4 w-4" />
                       </button>
