@@ -82,7 +82,7 @@ const ImagePickerModal = ({ isOpen, onClose, onSelectImage }) => {
   }
 
   const handleImageSelect = (item) => {
-    const imagePath = currentPath ? `/${currentPath}/${item.name}` : `/${item.name}`
+    const imagePath = currentPath ? `${currentPath}/${item.name}` : item.name
     onSelectImage(imagePath)
     onClose()
   }
@@ -230,7 +230,7 @@ const ImagePickerModal = ({ isOpen, onClose, onSelectImage }) => {
                     >
                       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-blue-500 transition-colors">
                         <img
-                          src={currentPath ? `/${currentPath}/${item.name}` : `/${item.name}`}
+                          src={assetsAPI.preview(currentPath ? `${currentPath}/${item.name}` : item.name)}
                           alt={item.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {

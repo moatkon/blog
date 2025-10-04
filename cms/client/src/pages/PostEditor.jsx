@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Save, ArrowLeft, Eye } from 'lucide-react'
+import { Save, ArrowLeft, Eye, Image as ImageIcon, X } from 'lucide-react'
 import { postsAPI, tagsAPI } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor'
+import ImagePickerModal from '../components/ImagePickerModal'
 import toast from 'react-hot-toast'
 
 const PostEditor = () => {
@@ -21,11 +22,13 @@ const PostEditor = () => {
     body: '',
     draft: true,
     tags: [],
-    pinned: false
+    pinned: false,
+    coverImage: null // { src: '', alt: '' }
   })
   const [availableTags, setAvailableTags] = useState([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showImagePicker, setShowImagePicker] = useState(false)
 
   useEffect(() => {
     loadAvailableTags()
@@ -54,7 +57,8 @@ const PostEditor = () => {
         body: post.body || '',
         draft: post.draft !== undefined ? post.draft : true,
         tags: post.tags || [],
-        pinned: post.pinned || false
+        pinned: post.pinned || false,
+        coverImage: post.coverImage || null
       })
     } catch (error) {
       console.error('Error loading post:', error)
@@ -94,6 +98,23 @@ const PostEditor = () => {
   const handleTagChange = (tagInput) => {
     const tags = tagInput.split(',').map(tag => tag.trim()).filter(tag => tag)
     setFormData(prev => ({ ...prev, tags }))
+  }
+
+  const handleImageSelect = (imagePath) => {
+    setFormData(prev => ({
+      ...prev,
+      coverImage: {
+        src: imagePath,
+        alt: formData.title || '封面图'
+      }
+    }))
+    setShowImagePicker(false)
+    toast.success('封面图已选择')
+  }
+
+  const handleRemoveCoverImage = () => {
+    setFormData(prev => ({ ...prev, coverImage: null }))
+    toast.success('封面图已移除')
   }
 
   if (loading) {
@@ -206,6 +227,49 @@ const PostEditor = () => {
               )}
             </div>
 
+            {/* 封面图 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                封面图
+              </label>
+              {formData.coverImage ? (
+                <div className="relative inline-block">
+                  <img
+                    src={`/api/assets/preview/${formData.coverImage.src}`}
+                    alt={formData.coverImage.alt}
+                    className="w-32 h-24 object-cover rounded-lg border border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoverImage}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowImagePicker(true)}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      更换封面图
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowImagePicker(true)}
+                  className="flex items-center justify-center w-32 h-24 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors"
+                >
+                  <div className="text-center">
+                    <ImageIcon className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                    <span className="text-xs text-gray-500">选择封面图</span>
+                  </div>
+                </button>
+              )}
+            </div>
+
             {/* 置顶 */}
             <div className="flex items-center">
               <input
@@ -257,6 +321,13 @@ const PostEditor = () => {
           </button>
         </div>
       </form>
+
+      {/* 图片选择器模态框 */}
+      <ImagePickerModal
+        isOpen={showImagePicker}
+        onClose={() => setShowImagePicker(false)}
+        onSelectImage={handleImageSelect}
+      />
     </div>
   )
 }

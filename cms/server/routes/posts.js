@@ -11,6 +11,23 @@ import {
 
 const router = express.Router();
 
+// 标准化封面图路径，移除 /public/ 前缀
+function normalizeCoverImagePath(coverImage) {
+  if (!coverImage || !coverImage.src) {
+    return coverImage;
+  }
+
+  return {
+    ...coverImage,
+    src: coverImage.src.replace(/^\/public\//, '')
+  };
+}
+
+// 为API响应准备封面图路径
+function prepareCoverImageForResponse(coverImage) {
+  return normalizeCoverImagePath(coverImage);
+}
+
 // 获取所有posts
 router.get('/', async (req, res) => {
   try {
@@ -25,14 +42,21 @@ router.get('/', async (req, res) => {
         const createdAt = new Date(post.stats.birthtime.getTime() + (8 * 60 * 60 * 1000));
         const modifiedAt = new Date(post.stats.mtime.getTime() + (8 * 60 * 60 * 1000));
 
-        posts.push({
+        const normalizedPost = {
           id: relativePath.replace(/\\/g, '/'),
           ...post.frontmatter,
           body: post.body,
           filePath: file,
           createdAt: createdAt.toISOString(),
           modifiedAt: modifiedAt.toISOString()
-        });
+        };
+
+        // 标准化封面图路径
+        if (normalizedPost.coverImage) {
+          normalizedPost.coverImage = prepareCoverImageForResponse(normalizedPost.coverImage);
+        }
+
+        posts.push(normalizedPost);
       }
     }
     
@@ -56,12 +80,19 @@ router.get('/:id(*)', async (req, res) => {
       return res.status(404).json({ error: 'Post not found' });
     }
     
-    res.json({
+    const responsePost = {
       id: req.params.id,
       ...post.frontmatter,
       body: post.body,
       filePath
-    });
+    };
+
+    // 标准化封面图路径
+    if (responsePost.coverImage) {
+      responsePost.coverImage = prepareCoverImageForResponse(responsePost.coverImage);
+    }
+
+    res.json(responsePost);
   } catch (error) {
     console.error('Error fetching post:', error);
     res.status(500).json({ error: 'Failed to fetch post' });
@@ -71,7 +102,7 @@ router.get('/:id(*)', async (req, res) => {
 // 创建新post
 router.post('/', async (req, res) => {
   try {
-    const { title, description, body, draft = true, tags = [], pinned = false } = req.body;
+    const { title, description, body, draft = true, tags = [], pinned = false, coverImage = null } = req.body;
     
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -85,13 +116,18 @@ router.post('/', async (req, res) => {
       tags,
       pinned
     };
+
+    // 添加封面图信息（如果有的话）
+    if (coverImage && coverImage.src) {
+      frontmatter.coverImage = normalizeCoverImagePath(coverImage);
+    }
     
     const filePath = await generateFilePath(CONTENT_PATHS.posts, 'post', title);
     const success = await writeMarkdownFile(filePath, frontmatter, body || '');
     
     if (success) {
       const relativePath = path.relative(CONTENT_PATHS.posts, filePath);
-      res.json({ 
+      res.status(201).json({
         id: relativePath.replace(/\\/g, '/'),
         message: 'Post created successfully',
         filePath
@@ -115,7 +151,7 @@ router.put('/:id(*)', async (req, res) => {
       return res.status(404).json({ error: 'Post not found' });
     }
     
-    const { title, description, body, draft, tags, pinned } = req.body;
+    const { title, description, body, draft, tags, pinned, coverImage } = req.body;
     
     const updatedFrontmatter = {
       ...existingPost.frontmatter,
@@ -126,6 +162,16 @@ router.put('/:id(*)', async (req, res) => {
       pinned: pinned !== undefined ? pinned : existingPost.frontmatter.pinned,
       updatedDate: new Date().toISOString().slice(0, 19).replace('T', ' ')
     };
+
+    // 处理封面图更新
+    if (coverImage !== undefined) {
+      if (coverImage && coverImage.src) {
+        updatedFrontmatter.coverImage = normalizeCoverImagePath(coverImage);
+      } else {
+        // 如果传入null或空对象，则删除封面图
+        delete updatedFrontmatter.coverImage;
+      }
+    }
     
     const success = await writeMarkdownFile(
       filePath, 

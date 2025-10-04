@@ -160,6 +160,9 @@ const Posts = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    封面图
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     标题
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -182,6 +185,19 @@ const Posts = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredPosts.map((post) => (
                   <tr key={post.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {post.coverImage && post.coverImage.src ? (
+                        <img
+                          src={`/api/assets/preview/${post.coverImage.src}`}
+                          alt={post.coverImage.alt || '封面图'}
+                          className="w-12 h-8 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-12 h-8 bg-gray-100 rounded flex items-center justify-center">
+                          <span className="text-xs text-gray-400">无</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
