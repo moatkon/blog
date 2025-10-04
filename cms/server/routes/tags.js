@@ -84,7 +84,7 @@ router.post('/', async (req, res) => {
       description: description || ''
     };
     
-    const filePath = generateFilePath(CONTENT_PATHS.tags, 'tag', name);
+    const filePath = await generateFilePath(CONTENT_PATHS.tags, 'tag', name);
     const success = await writeMarkdownFile(filePath, frontmatter, body || '');
     
     if (success) {

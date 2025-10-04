@@ -78,30 +78,61 @@ export async function deleteFile(filePath) {
 }
 
 /**
- * 生成文件路径
+ * 生成唯一的文件路径
  */
-export function generateFilePath(baseDir, type, title, date = new Date()) {
+export async function generateFilePath(baseDir, type, title, date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  
+
   let fileName = title.toLowerCase()
     .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, '-')
     .trim();
-  
+
   if (!fileName) {
     fileName = `untitled-${Date.now()}`;
   }
-  
+
+  let filePath;
+  let counter = 0;
+
   switch (type) {
     case 'post':
-      return path.join(baseDir, String(year), month, day, 'index.md');
+      // 对于post，如果当天已有文件，在目录名后加数字
+      do {
+        const dirName = counter === 0 ? day : `${day}-${counter}`;
+        filePath = path.join(baseDir, String(year), month, dirName, 'index.md');
+        counter++;
+      } while (await fs.pathExists(filePath));
+      break;
+
     case 'note':
-      return path.join(baseDir, String(year), `${month}-${day}.md`);
+      // 对于note，如果当天已有文件，在文件名后加数字
+      do {
+        const noteFileName = counter === 0 ? `${month}-${day}.md` : `${month}-${day}-${counter}.md`;
+        filePath = path.join(baseDir, String(year), noteFileName);
+        counter++;
+      } while (await fs.pathExists(filePath));
+      break;
+
     case 'tag':
-      return path.join(baseDir, `${fileName}.md`);
+      // 对于tag，如果文件名已存在，在文件名后加数字
+      do {
+        const tagFileName = counter === 0 ? `${fileName}.md` : `${fileName}-${counter}.md`;
+        filePath = path.join(baseDir, tagFileName);
+        counter++;
+      } while (await fs.pathExists(filePath));
+      break;
+
     default:
-      return path.join(baseDir, `${fileName}.md`);
+      do {
+        const defaultFileName = counter === 0 ? `${fileName}.md` : `${fileName}-${counter}.md`;
+        filePath = path.join(baseDir, defaultFileName);
+        counter++;
+      } while (await fs.pathExists(filePath));
+      break;
   }
+
+  return filePath;
 }

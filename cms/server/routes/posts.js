@@ -82,7 +82,7 @@ router.post('/', async (req, res) => {
       pinned
     };
     
-    const filePath = generateFilePath(CONTENT_PATHS.posts, 'post', title);
+    const filePath = await generateFilePath(CONTENT_PATHS.posts, 'post', title);
     const success = await writeMarkdownFile(filePath, frontmatter, body || '');
     
     if (success) {
