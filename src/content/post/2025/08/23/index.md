@@ -6,7 +6,7 @@ publishDate: "2025-08-23 14:01:20"
 draft: false
 tags: ["记录"]
 coverImage: 
-  src: "/public/202508/llsxyg.jpg"
+  src: "202508/llsxyg.jpg"
   alt: "movie ticket"
 ---
 

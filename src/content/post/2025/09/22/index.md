@@ -5,7 +5,7 @@ publishDate: "2025-09-22T00:10:21+08:00"
 draft: false
 tags: ["记录"]
 coverImage: 
-  src: "/public/202509/cake.jpg"
+  src: "202509/cake.jpg"
   alt: "cake"
 ---
 > 上面的封面图是成品展示，借用了朋友发的朋友圈图片

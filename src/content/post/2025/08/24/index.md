@@ -6,7 +6,7 @@ publishDate: "2025-08-24 15:06:19"
 draft: false
 tags: ["记录"]
 coverImage: 
-  src: "/public/202508/rhqzyrd.jpg"
+  src: "202508/rhqzyrd.jpg"
   alt: "仁厚清真牛羊肉店"
 ---
 
