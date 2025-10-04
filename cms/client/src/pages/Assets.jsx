@@ -74,7 +74,7 @@ const Assets = () => {
     }
 
     try {
-      const itemPath = currentPath ? `/${currentPath}/${item.name}` : `/${item.name}`
+      const itemPath = currentPath ? `/${currentPath}/${item.name}` : item.name
       await assetsAPI.delete(itemPath)
       toast.success('删除成功')
       loadAssets()
