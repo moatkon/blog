@@ -1,0 +1,17 @@
+现在写文章需要打开blog项目在src目录下写，比较麻烦。另外预览内容也需要启动服务，也很麻烦。需要开发一个内容管理系统(CMS)，在该系统中写文章，点击发布就可以在src相应的文件夹下添加相应的文件。
+
+blog项目中需要被CMS管理的目录:
+1. Posts内容: src/content/post
+2. Notes内容: src/content/note
+3. Tag内容: src/content/tag
+4. 静态资源文件: public
+
+CMS需要实现的内容:
+1. Posts内容管理。已有的Post可以集中管理、预览
+2. Notes内容管理。已有的Notes可以集中管理、预览
+3. Tag内容管理。已有的Tag可以集中管理、预览
+4. 静态资源管理。集中管理、预览
+
+Posts,Notes,Tag都是基于markdown文件来作为基本单元构建内容的。markdown文件相关属性是formatter来提供的，你也要基于formatter中的内容来构建CMS系统。
+
+Posts内容管理特别实现的，要有draft体现,如果后面有编辑要体现更新内容在updatedDate字段中，其余的正常实现。
