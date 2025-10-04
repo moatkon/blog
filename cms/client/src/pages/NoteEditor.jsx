@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Save, ArrowLeft } from 'lucide-react'
 import { notesAPI } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor'
 import toast from 'react-hot-toast'
 
 const NoteEditor = () => {
-  const { id } = useParams()
+  const params = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
-  const isEditing = Boolean(id)
+
+  // 从路径中提取完整的ID
+  const isNewNote = location.pathname === '/notes/new'
+  const id = isNewNote ? null : (params['*'] || location.pathname.replace('/notes/edit/', ''))
+  const isEditing = Boolean(id) && !isNewNote
 
   const [formData, setFormData] = useState({
     title: '',
@@ -19,10 +24,10 @@ const NoteEditor = () => {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (isEditing) {
+    if (isEditing && id) {
       loadNote()
     }
-  }, [id])
+  }, [isEditing, id])
 
   const loadNote = async () => {
     setLoading(true)

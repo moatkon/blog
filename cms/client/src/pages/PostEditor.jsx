@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Save, ArrowLeft, Eye } from 'lucide-react'
 import { postsAPI, tagsAPI } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor'
 import toast from 'react-hot-toast'
 
 const PostEditor = () => {
-  const { id } = useParams()
+  const params = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
-  const isEditing = Boolean(id)
+
+  // 从路径中提取完整的ID
+  const isNewPost = location.pathname === '/posts/new'
+  const id = isNewPost ? null : (params['*'] || location.pathname.replace('/posts/edit/', ''))
+  const isEditing = Boolean(id) && !isNewPost
 
   const [formData, setFormData] = useState({
     title: '',
@@ -24,10 +29,10 @@ const PostEditor = () => {
 
   useEffect(() => {
     loadAvailableTags()
-    if (isEditing) {
+    if (isEditing && id) {
       loadPost()
     }
-  }, [id])
+  }, [isEditing, id])
 
   const loadAvailableTags = async () => {
     try {

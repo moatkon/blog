@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { 
-  Upload, 
-  FolderPlus, 
-  Folder, 
-  File, 
-  Image as ImageIcon, 
-  Trash2, 
+import {
+  Upload,
+  FolderPlus,
+  Folder,
+  File,
+  Image as ImageIcon,
+  Trash2,
   Eye,
   Download,
-  Search
+  Search,
+  Copy
 } from 'lucide-react'
 import { assetsAPI } from '../services/api'
 import toast from 'react-hot-toast'
@@ -136,6 +137,25 @@ const Assets = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  const copyFileUrl = async (item) => {
+    const filePath = currentPath ? `${currentPath}/${item.name}` : item.name
+    const fileUrl = `${window.location.origin}/api/assets/preview/${filePath}`
+
+    try {
+      await navigator.clipboard.writeText(fileUrl)
+      toast.success('文件地址已复制到剪贴板')
+    } catch (error) {
+      // 如果clipboard API不可用，使用fallback方法
+      const textArea = document.createElement('textarea')
+      textArea.value = fileUrl
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      toast.success('文件地址已复制到剪贴板')
+    }
+  }
+
   const filteredAssets = assets.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -246,16 +266,25 @@ const Assets = () => {
                 {getFileIcon(item)}
                 <div className="flex space-x-1">
                   {item.type === 'file' && (
-                    <button
-                      onClick={() => {
-                        const previewPath = currentPath ? `${currentPath}/${item.name}` : item.name
-                        window.open(assetsAPI.preview(previewPath), '_blank')
-                      }}
-                      className="p-1 text-gray-400 hover:text-gray-600"
-                      title="预览"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          const previewPath = currentPath ? `${currentPath}/${item.name}` : item.name
+                          window.open(assetsAPI.preview(previewPath), '_blank')
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                        title="预览"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => copyFileUrl(item)}
+                        className="p-1 text-gray-400 hover:text-blue-600"
+                        title="复制地址"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => handleDelete(item)}
