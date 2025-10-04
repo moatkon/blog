@@ -19,22 +19,29 @@ export const CONTENT_PATHS = {
 export const SUPPORTED_EXTENSIONS = ['.md', '.mdx'];
 
 // 获取北京时间的工具函数
-export function getBeijingTime() {
+export function getBeijingTime(format = 'iso') {
   const now = new Date();
   // 北京时间是UTC+8
   const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-  return beijingTime.toISOString().replace('T', ' ').slice(0, 19);
+
+  if (format === 'iso') {
+    // 返回ISO 8601格式，带时区偏移量
+    return beijingTime.toISOString().replace('Z', '+08:00');
+  } else if (format === 'simple') {
+    // 返回简单格式，用于post
+    return beijingTime.toISOString().replace('T', ' ').slice(0, 19);
+  }
+
+  return beijingTime.toISOString();
 }
 
 // 默认的frontmatter模板生成函数
 export function getDefaultFrontmatter(type) {
-  const currentTime = getBeijingTime();
-
   const templates = {
     post: {
       title: '',
       description: '',
-      publishDate: currentTime,
+      publishDate: getBeijingTime('simple'), // Post使用简单格式
       draft: true,
       tags: [],
       pinned: false
@@ -42,7 +49,7 @@ export function getDefaultFrontmatter(type) {
     note: {
       title: '',
       description: '',
-      publishDate: currentTime
+      publishDate: getBeijingTime('iso') // Note使用ISO格式
     },
     tag: {
       title: '',
