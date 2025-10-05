@@ -79,16 +79,20 @@ const NoteEditor = () => {
 
   // 自动保存函数
   const autoSaveFunction = useCallback(async (data) => {
-    // 只有在有标题的情况下才自动保存
-    if (!data.title?.trim()) {
-      throw new Error('标题为空时不自动保存');
+    // 只有在有标题或内容的情况下才自动保存
+    if (!data.title?.trim() && !data.body?.trim() && !data.description?.trim()) {
+      throw new Error('内容为空时不自动保存');
     }
 
+    console.log('Note自动保存触发:', { currentId, hasTitle: !!data.title?.trim() });
+
     if (currentId) {
-      // 已有ID，更新现有Note（无论是编辑模式还是新建后的状态）
+      // 已有ID，更新现有Note
+      console.log('更新现有Note:', currentId);
       await notesAPI.update(currentId, data);
     } else {
       // 没有ID，创建新Note
+      console.log('创建新Note');
       const response = await notesAPI.create(data);
       const newNote = response.data;
 

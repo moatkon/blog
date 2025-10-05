@@ -29,35 +29,38 @@ const AutoSaveIndicator = ({
     return () => clearInterval(timer);
   }, []);
 
-  const statusText = getAutoSaveStatusText(status, lastSaved);
-  const statusClass = getAutoSaveStatusClass(status);
+  // 使用真实的 lastSaved 值
+  const statusText = getAutoSaveStatusText(status, lastSaved, currentTime);
+  const statusClass = getAutoSaveStatusClass(status, lastSaved);
 
-  // 临时调试信息
-  console.log('AutoSaveIndicator render:', { status, lastSaved, statusText });
+  // 调试信息
+  console.log('AutoSaveIndicator:', { status, lastSaved, statusText });
   
   // 获取状态图标
   const getStatusIcon = () => {
-    switch (status) {
-      case AUTO_SAVE_STATUS.PENDING:
-        return <Clock className="w-4 h-4" />;
-      case AUTO_SAVE_STATUS.SAVING:
-        return <Loader className="w-4 h-4 animate-spin" />;
-      case AUTO_SAVE_STATUS.SAVED:
-        return <CheckCircle className="w-4 h-4" />;
-      case AUTO_SAVE_STATUS.ERROR:
-        return <AlertCircle className="w-4 h-4" />;
-      default:
-        return <Save className="w-4 h-4" />;
+    // 如果有保存时间，显示成功图标
+    if (lastSaved) {
+      return <CheckCircle className="w-4 h-4" />;
     }
+
+    // 保存中显示加载图标
+    if (status === AUTO_SAVE_STATUS.SAVING) {
+      return <Loader className="w-4 h-4 animate-spin" />;
+    }
+
+    // 默认显示保存图标
+    return <Save className="w-4 h-4" />;
   };
   
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
-      {/* 状态指示器 */}
-      <div className={`flex items-center space-x-1 text-sm font-medium px-2 py-1 rounded-md border ${statusClass}`}>
-        {getStatusIcon()}
-        <span>{statusText}</span>
-      </div>
+      {/* 状态指示器 - 只有保存过才显示 */}
+      {statusText && (
+        <div className={`flex items-center space-x-1 text-sm font-medium px-2 py-1 rounded-md border ${statusClass}`}>
+          {getStatusIcon()}
+          <span>{statusText}</span>
+        </div>
+      )}
       
       {/* 手动保存按钮 */}
       {showForceButton && onForceSave && (
