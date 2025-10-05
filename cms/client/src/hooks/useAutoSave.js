@@ -28,17 +28,18 @@ export const getAutoSaveStatusText = (status, lastSaved, currentTime = new Date(
     case AUTO_SAVE_STATUS.SAVING:
       return '保存中...';
     case AUTO_SAVE_STATUS.SUCCESS:
-      if (diffInSeconds < 5) {
-        return '刚刚已保存';
-      } else if (diffInSeconds < 60) {
-        return `${diffInSeconds}秒前已保存`;
-      } else if (diffInSeconds < 3600) {
-        const minutes = Math.floor(diffInSeconds / 60);
-        return `${minutes}分钟前已保存`;
-      } else {
-        const hours = Math.floor(diffInSeconds / 3600);
-        return `${hours}小时前已保存`;
-      }
+      return '已自动保存'
+      // if (diffInSeconds < 5) {
+      //   return '刚刚已保存';
+      // } else if (diffInSeconds < 60) {
+      //   return `${diffInSeconds}秒前已保存`;
+      // } else if (diffInSeconds < 3600) {
+      //   const minutes = Math.floor(diffInSeconds / 60);
+      //   return `${minutes}分钟前已保存`;
+      // } else {
+      //   const hours = Math.floor(diffInSeconds / 3600);
+      //   return `${hours}小时前已保存`;
+      // }
     case AUTO_SAVE_STATUS.ERROR:
       return '保存失败';
     case AUTO_SAVE_STATUS.PENDING:
