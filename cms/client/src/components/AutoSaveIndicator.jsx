@@ -40,10 +40,11 @@ const AutoSaveIndicator = ({
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
       {/* 状态指示器 */}
-      <div className={`flex items-center space-x-1 text-sm ${statusClass}`}>
+       {/* 先注释掉 */}
+      {/* <div className={`flex items-center space-x-1 text-sm ${statusClass}`}>
         {getStatusIcon()}
         <span>{statusText}</span>
-      </div>
+      </div> */}
       
       {/* 手动保存按钮 */}
       {showForceButton && onForceSave && (
