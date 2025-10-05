@@ -78,7 +78,7 @@ const AutoSaveIndicator = ({
           title="立即保存"
         >
           <Save className="w-3 h-3" />
-          <span>保存</span>
+          <span>手动触发临时保存</span>
         </button>
       )}
     </div>

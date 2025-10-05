@@ -1,9 +1,12 @@
 ---
-title: "爷爷给我买手表"
-description: "爷爷给我买手表"
-publishDate: "2025-09-27T07:07:59+08:00"
+title: 爷爷给我买手表
+description: 爷爷给我买手表
+publishDate: '2025-09-27T07:07:59+08:00'
 draft: false
-tags: ["回忆"]
+tags:
+  - 回忆
+pinned: false
+updatedDate: '2025-10-05 17:09:12'
 ---
 
 前天我在吃饭的时候，小宝要带我手上的手表,让我想起了我小的时候了。
