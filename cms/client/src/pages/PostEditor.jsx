@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Save, ArrowLeft, Eye, Image as ImageIcon, X } from 'lucide-react'
 import { postsAPI, tagsAPI } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor'
 import ImagePickerModal from '../components/ImagePickerModal'
+import AutoSaveIndicator from '../components/AutoSaveIndicator'
+import { useAutoSave } from '../hooks/useAutoSave'
 import toast from 'react-hot-toast'
 
 const PostEditor = () => {
@@ -117,6 +119,34 @@ const PostEditor = () => {
     toast.success('封面图已移除')
   }
 
+  // 自动保存函数
+  const autoSaveFunction = useCallback(async (data) => {
+    if (!isEditing || !id) {
+      throw new Error('新建Post时不自动保存');
+    }
+
+    // 只有在有标题的情况下才自动保存
+    if (!data.title?.trim()) {
+      throw new Error('标题为空时不自动保存');
+    }
+
+    await postsAPI.update(id, data);
+  }, [isEditing, id]);
+
+  // 使用自动保存Hook
+  const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({
+    saveFunction: autoSaveFunction,
+    data: formData,
+    delay: 3000, // 3秒延迟
+    enabled: isEditing && !saving, // 只在编辑模式且非手动保存时启用
+    onSaveSuccess: () => {
+      // 自动保存成功时的回调
+    },
+    onSaveError: (error) => {
+      console.error('Auto save failed:', error);
+    }
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -140,6 +170,15 @@ const PostEditor = () => {
             <h1 className="text-2xl font-bold text-gray-900">
               {isEditing ? '编辑Post' : '新建Post'}
             </h1>
+            {/* 自动保存状态指示器 */}
+            {isEditing && (
+              <AutoSaveIndicator
+                status={autoSaveStatus}
+                lastSaved={lastSaved}
+                onForceSave={forceSave}
+                className="ml-4"
+              />
+            )}
           </div>
           <div className="flex items-center space-x-3">
             <button
