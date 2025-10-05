@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Save, Clock, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { AUTO_SAVE_STATUS, getAutoSaveStatusText, getAutoSaveStatusClass } from '../hooks/useAutoSave';
 
@@ -18,8 +18,22 @@ const AutoSaveIndicator = ({
   showForceButton = true,
   className = ''
 }) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // 每秒更新当前时间，用于实时更新"X秒前已保存"的显示
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   const statusText = getAutoSaveStatusText(status, lastSaved);
   const statusClass = getAutoSaveStatusClass(status);
+
+  // 临时调试信息
+  console.log('AutoSaveIndicator render:', { status, lastSaved, statusText });
   
   // 获取状态图标
   const getStatusIcon = () => {
@@ -40,11 +54,10 @@ const AutoSaveIndicator = ({
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
       {/* 状态指示器 */}
-       {/* 先注释掉 */}
-      {/* <div className={`flex items-center space-x-1 text-sm ${statusClass}`}>
+      <div className={`flex items-center space-x-1 text-sm font-medium px-2 py-1 rounded-md border ${statusClass}`}>
         {getStatusIcon()}
         <span>{statusText}</span>
-      </div> */}
+      </div>
       
       {/* 手动保存按钮 */}
       {showForceButton && onForceSave && (

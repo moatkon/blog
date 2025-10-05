@@ -54,12 +54,20 @@ export const useAutoSave = ({
     }
 
     try {
+      console.log('useAutoSave: performSave started, setting status to SAVING');
       setStatus(AUTO_SAVE_STATUS.SAVING);
       setIsAutoSaving(!isManual);
 
-      await saveFunction(data);
+      // 确保 SAVING 状态至少显示 1 秒，让用户能看到
+      const [saveResult] = await Promise.all([
+        saveFunction(data),
+        new Promise(resolve => setTimeout(resolve, 1000))
+      ]);
+
+      console.log('useAutoSave: Save completed successfully');
 
       if (isMountedRef.current) {
+        console.log('useAutoSave: Setting status to SAVED');
         setStatus(AUTO_SAVE_STATUS.SAVED);
         setLastSaved(new Date());
         lastDataRef.current = JSON.stringify(data);
@@ -70,20 +78,22 @@ export const useAutoSave = ({
 
         onSaveSuccess?.(data);
 
-        // 2秒后重置状态为空闲，但只有在状态仍为SAVED时才重置
+        // 5秒后重置状态为空闲，让用户有足够时间看到保存成功状态
         setTimeout(() => {
           if (isMountedRef.current) {
             setStatus(prevStatus =>
               prevStatus === AUTO_SAVE_STATUS.SAVED ? AUTO_SAVE_STATUS.IDLE : prevStatus
             );
           }
-        }, 2000);
+        }, 5000);
       }
     } catch (error) {
-      // 如果是预期的跳过情况（如新建Post或无标题），不设置错误状态
-      if (error.message.includes('新建Post时不自动保存') || error.message.includes('标题为空时不自动保存')) {
+      // 如果是预期的跳过情况（如标题为空），不设置错误状态，但也不重复触发
+      if (error.message.includes('标题为空时不自动保存')) {
         if (isMountedRef.current) {
           setStatus(AUTO_SAVE_STATUS.IDLE);
+          // 更新 lastDataRef 以避免重复触发
+          lastDataRef.current = JSON.stringify(data);
         }
       } else {
         // 真正的错误
@@ -142,9 +152,11 @@ export const useAutoSave = ({
 
     // 清除之前的定时器并设置新的保存任务
     clearTimeout();
+    console.log('useAutoSave: Setting status to PENDING, will save in', delay, 'ms');
     setStatus(AUTO_SAVE_STATUS.PENDING);
 
     timeoutRef.current = window.setTimeout(() => {
+      console.log('useAutoSave: Timeout triggered, calling performSave');
       performSave(false);
     }, delay);
 
@@ -179,7 +191,12 @@ export const getAutoSaveStatusText = (status, lastSaved) => {
       return '等待保存...';
     case AUTO_SAVE_STATUS.SAVING:
       return '保存中...';
+    case AUTO_SAVE_STATUS.ERROR:
+      return '保存失败';
     case AUTO_SAVE_STATUS.SAVED:
+    case AUTO_SAVE_STATUS.IDLE:
+    default:
+      // 对于 SAVED、IDLE 或其他状态，如果有保存时间就显示时间
       if (lastSaved) {
         const now = new Date();
         const diff = Math.floor((now - lastSaved) / 1000);
@@ -188,14 +205,10 @@ export const getAutoSaveStatusText = (status, lastSaved) => {
         } else if (diff < 3600) {
           return `${Math.floor(diff / 60)}分钟前已保存`;
         } else {
-          return lastSaved.toLocaleTimeString();
+          return `${lastSaved.toLocaleTimeString()}已保存`;
         }
       }
-      return '已保存';
-    case AUTO_SAVE_STATUS.ERROR:
-      return '保存失败';
-    default:
-      return '';
+      return '自动保存已启用';
   }
 };
 
@@ -207,14 +220,14 @@ export const getAutoSaveStatusText = (status, lastSaved) => {
 export const getAutoSaveStatusClass = (status) => {
   switch (status) {
     case AUTO_SAVE_STATUS.PENDING:
-      return 'text-yellow-600';
+      return 'text-yellow-700 border-yellow-200 bg-yellow-50';
     case AUTO_SAVE_STATUS.SAVING:
-      return 'text-blue-600';
+      return 'text-blue-700 border-blue-200 bg-blue-50';
     case AUTO_SAVE_STATUS.SAVED:
-      return 'text-green-600';
+      return 'text-green-700 border-green-200 bg-green-50';
     case AUTO_SAVE_STATUS.ERROR:
-      return 'text-red-600';
+      return 'text-red-700 border-red-200 bg-red-50';
     default:
-      return 'text-gray-500';
+      return 'text-gray-600 border-gray-200 bg-gray-50';
   }
 };

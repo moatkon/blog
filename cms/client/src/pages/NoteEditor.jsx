@@ -24,6 +24,7 @@ const NoteEditor = () => {
   })
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [currentId, setCurrentId] = useState(id) // 跟踪当前的ID
 
   useEffect(() => {
     if (isEditing && id) {
@@ -78,25 +79,32 @@ const NoteEditor = () => {
 
   // 自动保存函数
   const autoSaveFunction = useCallback(async (data) => {
-    if (!isEditing || !id) {
-      // 新建Note时不自动保存，只有编辑现有Note时才自动保存
-      return;
-    }
-
     // 只有在有标题的情况下才自动保存
     if (!data.title?.trim()) {
-      return;
+      throw new Error('标题为空时不自动保存');
     }
 
-    await notesAPI.update(id, data);
-  }, [isEditing, id]);
+    if (currentId) {
+      // 已有ID，更新现有Note（无论是编辑模式还是新建后的状态）
+      await notesAPI.update(currentId, data);
+    } else {
+      // 没有ID，创建新Note
+      const response = await notesAPI.create(data);
+      const newNote = response.data;
+
+      // 更新URL和状态，切换到编辑模式
+      window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
+      setCurrentId(newNote.id);
+      toast.success('Note已自动创建并保存');
+    }
+  }, [currentId]);
 
   // 使用自动保存Hook
   const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({
     saveFunction: autoSaveFunction,
     data: formData,
     delay: 3000, // 3秒延迟
-    enabled: isEditing && !saving, // 只在编辑模式且非手动保存时启用
+    enabled: !saving, // 只要不在手动保存就启用自动保存
     onSaveSuccess: () => {
       // 自动保存成功时的回调
     },
@@ -128,14 +136,12 @@ const NoteEditor = () => {
             {isEditing ? '编辑Note' : '新建Note'}
           </h1>
           {/* 自动保存状态指示器 */}
-          {isEditing && (
-            <AutoSaveIndicator
-              status={autoSaveStatus}
-              lastSaved={lastSaved}
-              onForceSave={forceSave}
-              className="ml-4"
-            />
-          )}
+          <AutoSaveIndicator
+            status={autoSaveStatus}
+            lastSaved={lastSaved}
+            onForceSave={forceSave}
+            className="ml-4"
+          />
         </div>
       </div>
 
