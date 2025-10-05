@@ -160,7 +160,8 @@ router.put('/:id(*)', async (req, res) => {
       draft: draft !== undefined ? draft : existingPost.frontmatter.draft,
       tags: tags || existingPost.frontmatter.tags,
       pinned: pinned !== undefined ? pinned : existingPost.frontmatter.pinned,
-      updatedDate: new Date().toISOString().slice(0, 19).replace('T', ' ')
+      // updatedDate: new Date().toISOString().slice(0, 19).replace('T', ' ')
+      updatedDate: getBeijingTime('simple')
     };
 
     // 处理封面图更新
