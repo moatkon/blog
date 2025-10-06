@@ -27,6 +27,7 @@ const PostEditor = () => {
     pinned: false,
     coverImage: null // { src: '', alt: '' }
   })
+  const [originalPost, setOriginalPost] = useState(null) // 存储原始post数据用于比较
   const [availableTags, setAvailableTags] = useState([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -54,7 +55,7 @@ const PostEditor = () => {
     try {
       const response = await postsAPI.getById(id)
       const post = response.data
-      setFormData({
+      const postData = {
         title: post.title || '',
         description: post.description || '',
         body: post.body || '',
@@ -62,7 +63,9 @@ const PostEditor = () => {
         tags: post.tags || [],
         pinned: post.pinned || false,
         coverImage: post.coverImage || null
-      })
+      }
+      setFormData(postData)
+      setOriginalPost(postData) // 保存原始数据用于比较
     } catch (error) {
       console.error('Error loading post:', error)
       toast.error('加载Post失败')
@@ -127,12 +130,51 @@ const PostEditor = () => {
       throw new Error('内容为空时不自动保存');
     }
 
-    console.log('自动保存触发:', { currentId, hasTitle: !!data.title?.trim() });
+    // 如果是新帖子(没有原始数据)，直接保存
+    if (!originalPost) {
+      console.log('自动保存触发(新帖子):', { currentId, hasTitle: !!data.title?.trim() });
+      
+      if (currentId) {
+        // 已有ID，更新现有Post
+        console.log('更新现有Post:', currentId);
+        await postsAPI.update(currentId, data);
+      } else {
+        // 没有ID，创建新Post
+        console.log('创建新Post');
+        const response = await postsAPI.create(data);
+        const newPost = response.data;
+
+        // 更新URL和状态，切换到编辑模式
+        window.history.replaceState(null, '', `/posts/edit/${newPost.id}`);
+        setCurrentId(newPost.id);
+        toast.success('Post已自动创建并保存');
+      }
+      return;
+    }
+
+    // 比较当前数据与原始数据，只有在有实际更改时才保存
+    const hasChanges = 
+      data.title !== originalPost.title ||
+      data.description !== originalPost.description ||
+      data.body !== originalPost.body ||
+      data.draft !== originalPost.draft ||
+      JSON.stringify(data.tags) !== JSON.stringify(originalPost.tags) ||
+      data.pinned !== originalPost.pinned ||
+      JSON.stringify(data.coverImage) !== JSON.stringify(originalPost.coverImage);
+
+    if (!hasChanges) {
+      console.log('自动保存触发但无实际更改，跳过保存');
+      return; // 没有实际更改，不保存
+    }
+
+    console.log('自动保存触发:', { currentId, hasTitle: !!data.title?.trim(), hasChanges });
 
     if (currentId) {
       // 已有ID，更新现有Post
       console.log('更新现有Post:', currentId);
       await postsAPI.update(currentId, data);
+      // 更新原始数据为当前数据
+      setOriginalPost({ ...data });
     } else {
       // 没有ID，创建新Post
       console.log('创建新Post');
@@ -142,9 +184,11 @@ const PostEditor = () => {
       // 更新URL和状态，切换到编辑模式
       window.history.replaceState(null, '', `/posts/edit/${newPost.id}`);
       setCurrentId(newPost.id);
+      // 更新原始数据
+      setOriginalPost({ ...data });
       toast.success('Post已自动创建并保存');
     }
-  }, [currentId]);
+  }, [currentId, originalPost]);
 
   // 使用自动保存Hook
   const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({

@@ -114,6 +114,17 @@ router.put('/:id(*)', async (req, res) => {
     
     const { title, description, body } = req.body;
     
+    // 检查是否有实际更改
+    const hasChanges = 
+      (title && title !== existingNote.frontmatter.title) ||
+      (description !== undefined && description !== existingNote.frontmatter.description) ||
+      (body !== undefined && body !== existingNote.body);
+
+    if (!hasChanges) {
+      // 没有实际更改，直接返回成功而不更新文件
+      return res.json({ message: 'No changes detected, note not updated' });
+    }
+    
     const updatedFrontmatter = {
       ...existingNote.frontmatter,
       title: title || existingNote.frontmatter.title,

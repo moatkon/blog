@@ -22,6 +22,7 @@ const NoteEditor = () => {
     description: '',
     body: ''
   })
+  const [originalNote, setOriginalNote] = useState(null) // 存储原始note数据用于比较
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentId, setCurrentId] = useState(id) // 跟踪当前的ID
@@ -37,11 +38,13 @@ const NoteEditor = () => {
     try {
       const response = await notesAPI.getById(id)
       const note = response.data
-      setFormData({
+      const noteData = {
         title: note.title || '',
         description: note.description || '',
         body: note.body || ''
-      })
+      }
+      setFormData(noteData)
+      setOriginalNote(noteData) // 保存原始数据用于比较
     } catch (error) {
       console.error('Error loading note:', error)
       toast.error('加载Note失败')
@@ -84,12 +87,47 @@ const NoteEditor = () => {
       throw new Error('内容为空时不自动保存');
     }
 
-    console.log('Note自动保存触发:', { currentId, hasTitle: !!data.title?.trim() });
+    // 如果是新笔记(没有原始数据)，直接保存
+    if (!originalNote) {
+      console.log('Note自动保存触发(新笔记):', { currentId, hasTitle: !!data.title?.trim() });
+      
+      if (currentId) {
+        // 已有ID，更新现有Note
+        console.log('更新现有Note:', currentId);
+        await notesAPI.update(currentId, data);
+      } else {
+        // 没有ID，创建新Note
+        console.log('创建新Note');
+        const response = await notesAPI.create(data);
+        const newNote = response.data;
+
+        // 更新URL和状态，切换到编辑模式
+        window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
+        setCurrentId(newNote.id);
+        toast.success('Note已自动创建并保存');
+      }
+      return;
+    }
+
+    // 比较当前数据与原始数据，只有在有实际更改时才保存
+    const hasChanges = 
+      data.title !== originalNote.title ||
+      data.description !== originalNote.description ||
+      data.body !== originalNote.body;
+
+    if (!hasChanges) {
+      console.log('Note自动保存触发但无实际更改，跳过保存');
+      return; // 没有实际更改，不保存
+    }
+
+    console.log('Note自动保存触发:', { currentId, hasTitle: !!data.title?.trim(), hasChanges });
 
     if (currentId) {
       // 已有ID，更新现有Note
       console.log('更新现有Note:', currentId);
       await notesAPI.update(currentId, data);
+      // 更新原始数据为当前数据
+      setOriginalNote({ ...data });
     } else {
       // 没有ID，创建新Note
       console.log('创建新Note');
@@ -99,9 +137,11 @@ const NoteEditor = () => {
       // 更新URL和状态，切换到编辑模式
       window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
       setCurrentId(newNote.id);
+      // 更新原始数据
+      setOriginalNote({ ...data });
       toast.success('Note已自动创建并保存');
     }
-  }, [currentId]);
+  }, [currentId, originalNote]);
 
   // 使用自动保存Hook
   const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({

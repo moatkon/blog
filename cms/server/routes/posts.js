@@ -160,9 +160,21 @@ router.put('/:id(*)', async (req, res) => {
       draft: draft !== undefined ? draft : existingPost.frontmatter.draft,
       tags: tags || existingPost.frontmatter.tags,
       pinned: pinned !== undefined ? pinned : existingPost.frontmatter.pinned,
-      // updatedDate: new Date().toISOString().slice(0, 19).replace('T', ' ')
-      updatedDate: getBeijingTime('simple')
     };
+
+    // 检查是否有实际更改，如果有则更新 updatedDate
+    const hasChanges = 
+      (title && title !== existingPost.frontmatter.title) ||
+      (description !== undefined && description !== existingPost.frontmatter.description) ||
+      (draft !== undefined && draft !== existingPost.frontmatter.draft) ||
+      (tags && JSON.stringify(tags) !== JSON.stringify(existingPost.frontmatter.tags)) ||
+      (pinned !== undefined && pinned !== existingPost.frontmatter.pinned) ||
+      (coverImage !== undefined) ||  // 封面图是否更改
+      (body !== undefined && body !== existingPost.body);
+
+    if (hasChanges) {
+      updatedFrontmatter.updatedDate = getBeijingTime('simple');
+    }
 
     // 处理封面图更新
     if (coverImage !== undefined) {
