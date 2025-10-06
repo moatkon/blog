@@ -49,7 +49,7 @@ const Notes = () => {
   }
 
   const handleDelete = async (note) => {
-    if (!window.confirm(`确定要删除 \"${note.title}\" 吗？`)) {
+    if (!window.confirm(`确定要删除 "${note.title}" 吗？`)) {
       return
     }
 
@@ -60,18 +60,6 @@ const Notes = () => {
     } catch (error) {
       console.error('Error deleting note:', error)
       toast.error('删除Note失败')
-    }
-  }
-
-  const handlePreview = async (note) => {
-    try {
-      // 获取完整的note数据（包括body内容）
-      const response = await notesAPI.getById(note.id)
-      setPreviewNote(response.data)
-      setShowPreviewModal(true)
-    } catch (error) {
-      console.error('Error loading note for preview:', error)
-      toast.error('加载Note内容失败')
     }
   }
 
@@ -161,13 +149,6 @@ const Notes = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => handlePreview(note)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="预览Note"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
                         <Link
                           to={`/notes/edit/${note.id}`}
                           className="text-green-600 hover:text-green-900"
@@ -195,15 +176,6 @@ const Notes = () => {
           </div>
         )}
       </div>
-
-      {/* 预览模态框 */}
-      <PreviewModal
-        isOpen={showPreviewModal}
-        onClose={() => setShowPreviewModal(false)}
-        title={previewNote?.title || ''}
-        content={previewNote?.body || ''}
-        type="note"
-      />
     </div>
   )
 }

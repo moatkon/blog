@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Eye, Search, Filter } from 'lucide-react'
 import { postsAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
+import PreviewModal from '../components/PreviewModal'
 
 const Posts = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -12,6 +13,8 @@ const Posts = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState(searchParams.get('filter') || 'all') // all, published, draft
+  const [previewPost, setPreviewPost] = useState(null)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
 
   useEffect(() => {
     loadPosts()
@@ -85,6 +88,18 @@ const Posts = () => {
     } catch (error) {
       console.error('Error updating post:', error)
       toast.error('更新Post状态失败')
+    }
+  }
+
+  const handlePreview = async (post) => {
+    try {
+      // 获取完整的post数据（包括body内容）
+      const response = await postsAPI.getById(post.id)
+      setPreviewPost(response.data)
+      setShowPreviewModal(true)
+    } catch (error) {
+      console.error('Error loading post for preview:', error)
+      toast.error('加载Post内容失败')
     }
   }
 
@@ -245,6 +260,13 @@ const Posts = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handlePreview(post)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                          title="预览Post"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
                         <Link
                           to={`/posts/edit/${post.id}`}
                           className="text-blue-600 hover:text-blue-900"
@@ -272,6 +294,15 @@ const Posts = () => {
           </div>
         )}
       </div>
+      
+      {/* 预览模态框 */}
+      <PreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        title={previewPost?.title || ''}
+        content={previewPost?.body || ''}
+        type="post"
+      />
     </div>
   )
 }
