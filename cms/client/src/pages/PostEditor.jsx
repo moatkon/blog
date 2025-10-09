@@ -33,6 +33,7 @@ const PostEditor = () => {
   const [saving, setSaving] = useState(false)
   const [showImagePicker, setShowImagePicker] = useState(false)
   const [currentId, setCurrentId] = useState(id) // 跟踪当前的ID
+  const [isCreating, setIsCreating] = useState(false) // 标记是否正在创建新帖子
 
   useEffect(() => {
     loadAvailableTags()
@@ -85,17 +86,27 @@ const PostEditor = () => {
 
     setSaving(true)
     try {
-      if (isEditing) {
-        await postsAPI.update(id, formData)
+      if (currentId) {
+        // 如果已经有ID，更新现有Post
+        await postsAPI.update(currentId, formData)
         toast.success('Post更新成功')
+      } else if (!isCreating) {
+        // 如果没有ID且未在创建中，创建新Post
+        setIsCreating(true);
+        try {
+          const response = await postsAPI.create(formData)
+          toast.success('Post创建成功')
+        } finally {
+          setIsCreating(false);
+        }
       } else {
-        await postsAPI.create(formData)
-        toast.success('Post创建成功')
+        // 如果正在创建中，等待创建完成后再处理
+        toast.success('Post已保存')
       }
       navigate('/posts')
     } catch (error) {
       console.error('Error saving post:', error)
-      toast.error(isEditing ? '更新Post失败' : '创建Post失败')
+      toast.error(currentId ? '更新Post失败' : '创建Post失败')
     } finally {
       setSaving(false)
     }
@@ -130,6 +141,18 @@ const PostEditor = () => {
       throw new Error('内容为空时不自动保存');
     }
 
+    // 比较当前数据与原始数据，只有在有实际更改时才保存
+    const hasChanges = 
+      originalPost && (
+        data.title !== originalPost.title ||
+        data.description !== originalPost.description ||
+        data.body !== originalPost.body ||
+        data.draft !== originalPost.draft ||
+        JSON.stringify(data.tags) !== JSON.stringify(originalPost.tags) ||
+        data.pinned !== originalPost.pinned ||
+        JSON.stringify(data.coverImage) !== JSON.stringify(originalPost.coverImage)
+      );
+
     // 如果是新帖子(没有原始数据)，直接保存
     if (!originalPost) {
       console.log('自动保存触发(新帖子):', { currentId, hasTitle: !!data.title?.trim() });
@@ -138,29 +161,28 @@ const PostEditor = () => {
         // 已有ID，更新现有Post
         console.log('更新现有Post:', currentId);
         await postsAPI.update(currentId, data);
-      } else {
-        // 没有ID，创建新Post
+        // 更新原始数据为当前数据
+        setOriginalPost({ ...data });
+      } else if (!isCreating) {
+        // 没有ID且未在创建中，创建新Post
         console.log('创建新Post');
-        const response = await postsAPI.create(data);
-        const newPost = response.data;
+        setIsCreating(true); // 设置创建状态，防止重复创建
+        try {
+          const response = await postsAPI.create(data);
+          const newPost = response.data;
 
-        // 更新URL和状态，切换到编辑模式
-        window.history.replaceState(null, '', `/posts/edit/${newPost.id}`);
-        setCurrentId(newPost.id);
-        toast.success('Post已自动创建并保存');
+          // 更新URL和状态，切换到编辑模式
+          window.history.replaceState(null, '', `/posts/edit/${newPost.id}`);
+          setCurrentId(newPost.id);
+          // 更新原始数据
+          setOriginalPost({ ...data });
+          toast.success('Post已自动创建并保存');
+        } finally {
+          setIsCreating(false); // 重置创建状态
+        }
       }
       return;
     }
-
-    // 比较当前数据与原始数据，只有在有实际更改时才保存
-    const hasChanges = 
-      data.title !== originalPost.title ||
-      data.description !== originalPost.description ||
-      data.body !== originalPost.body ||
-      data.draft !== originalPost.draft ||
-      JSON.stringify(data.tags) !== JSON.stringify(originalPost.tags) ||
-      data.pinned !== originalPost.pinned ||
-      JSON.stringify(data.coverImage) !== JSON.stringify(originalPost.coverImage);
 
     if (!hasChanges) {
       console.log('自动保存触发但无实际更改，跳过保存');
@@ -175,20 +197,25 @@ const PostEditor = () => {
       await postsAPI.update(currentId, data);
       // 更新原始数据为当前数据
       setOriginalPost({ ...data });
-    } else {
+    } else if (!isCreating) {
       // 没有ID，创建新Post
       console.log('创建新Post');
-      const response = await postsAPI.create(data);
-      const newPost = response.data;
+      setIsCreating(true); // 设置创建状态，防止重复创建
+      try {
+        const response = await postsAPI.create(data);
+        const newPost = response.data;
 
-      // 更新URL和状态，切换到编辑模式
-      window.history.replaceState(null, '', `/posts/edit/${newPost.id}`);
-      setCurrentId(newPost.id);
-      // 更新原始数据
-      setOriginalPost({ ...data });
-      toast.success('Post已自动创建并保存');
+        // 更新URL和状态，切换到编辑模式
+        window.history.replaceState(null, '', `/posts/edit/${newPost.id}`);
+        setCurrentId(newPost.id);
+        // 更新原始数据
+        setOriginalPost({ ...data });
+        toast.success('Post已自动创建并保存');
+      } finally {
+        setIsCreating(false); // 重置创建状态
+      }
     }
-  }, [currentId, originalPost]);
+  }, [currentId, originalPost, isCreating]);
 
   // 使用自动保存Hook
   const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({

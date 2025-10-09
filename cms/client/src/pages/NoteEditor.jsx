@@ -26,6 +26,7 @@ const NoteEditor = () => {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentId, setCurrentId] = useState(id) // 跟踪当前的ID
+  const [isCreating, setIsCreating] = useState(false) // 标记是否正在创建新笔记
 
   useEffect(() => {
     if (isEditing && id) {
@@ -64,17 +65,27 @@ const NoteEditor = () => {
 
     setSaving(true)
     try {
-      if (isEditing) {
-        await notesAPI.update(id, formData)
+      if (currentId) {
+        // 如果已经有ID，更新现有Note
+        await notesAPI.update(currentId, formData)
         toast.success('Note更新成功')
+      } else if (!isCreating) {
+        // 如果没有ID且未在创建中，创建新Note
+        setIsCreating(true);
+        try {
+          const response = await notesAPI.create(formData)
+          toast.success('Note创建成功')
+        } finally {
+          setIsCreating(false);
+        }
       } else {
-        await notesAPI.create(formData)
-        toast.success('Note创建成功')
+        // 如果正在创建中，等待创建完成后再处理
+        toast.success('Note已保存')
       }
       navigate('/notes')
     } catch (error) {
       console.error('Error saving note:', error)
-      toast.error(isEditing ? '更新Note失败' : '创建Note失败')
+      toast.error(currentId ? '更新Note失败' : '创建Note失败')
     } finally {
       setSaving(false)
     }
@@ -87,6 +98,14 @@ const NoteEditor = () => {
       throw new Error('内容为空时不自动保存');
     }
 
+    // 比较当前数据与原始数据，只有在有实际更改时才保存
+    const hasChanges = 
+      originalNote && (
+        data.title !== originalNote.title ||
+        data.description !== originalNote.description ||
+        data.body !== originalNote.body
+      );
+
     // 如果是新笔记(没有原始数据)，直接保存
     if (!originalNote) {
       console.log('Note自动保存触发(新笔记):', { currentId, hasTitle: !!data.title?.trim() });
@@ -95,25 +114,28 @@ const NoteEditor = () => {
         // 已有ID，更新现有Note
         console.log('更新现有Note:', currentId);
         await notesAPI.update(currentId, data);
-      } else {
-        // 没有ID，创建新Note
+        // 更新原始数据为当前数据
+        setOriginalNote({ ...data });
+      } else if (!isCreating) {
+        // 没有ID且未在创建中，创建新Note
         console.log('创建新Note');
-        const response = await notesAPI.create(data);
-        const newNote = response.data;
+        setIsCreating(true); // 设置创建状态，防止重复创建
+        try {
+          const response = await notesAPI.create(data);
+          const newNote = response.data;
 
-        // 更新URL和状态，切换到编辑模式
-        window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
-        setCurrentId(newNote.id);
-        toast.success('Note已自动创建并保存');
+          // 更新URL和状态，切换到编辑模式
+          window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
+          setCurrentId(newNote.id);
+          // 更新原始数据
+          setOriginalNote({ ...data });
+          toast.success('Note已自动创建并保存');
+        } finally {
+          setIsCreating(false); // 重置创建状态
+        }
       }
       return;
     }
-
-    // 比较当前数据与原始数据，只有在有实际更改时才保存
-    const hasChanges = 
-      data.title !== originalNote.title ||
-      data.description !== originalNote.description ||
-      data.body !== originalNote.body;
 
     if (!hasChanges) {
       console.log('Note自动保存触发但无实际更改，跳过保存');
@@ -128,20 +150,25 @@ const NoteEditor = () => {
       await notesAPI.update(currentId, data);
       // 更新原始数据为当前数据
       setOriginalNote({ ...data });
-    } else {
+    } else if (!isCreating) {
       // 没有ID，创建新Note
       console.log('创建新Note');
-      const response = await notesAPI.create(data);
-      const newNote = response.data;
+      setIsCreating(true); // 设置创建状态，防止重复创建
+      try {
+        const response = await notesAPI.create(data);
+        const newNote = response.data;
 
-      // 更新URL和状态，切换到编辑模式
-      window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
-      setCurrentId(newNote.id);
-      // 更新原始数据
-      setOriginalNote({ ...data });
-      toast.success('Note已自动创建并保存');
+        // 更新URL和状态，切换到编辑模式
+        window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
+        setCurrentId(newNote.id);
+        // 更新原始数据
+        setOriginalNote({ ...data });
+        toast.success('Note已自动创建并保存');
+      } finally {
+        setIsCreating(false); // 重置创建状态
+      }
     }
-  }, [currentId, originalNote]);
+  }, [currentId, originalNote, isCreating]);
 
   // 使用自动保存Hook
   const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({
