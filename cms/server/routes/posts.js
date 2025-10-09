@@ -111,9 +111,9 @@ router.post('/', async (req, res) => {
     const frontmatter = {
       ...getDefaultFrontmatter('post'),
       title,
-      description: description || title,
+      description: description !== undefined ? description : title,
       draft,
-      tags,
+      tags: tags || [],
       pinned
     };
 
@@ -156,9 +156,9 @@ router.put('/:id(*)', async (req, res) => {
     const updatedFrontmatter = {
       ...existingPost.frontmatter,
       title: title || existingPost.frontmatter.title,
-      description: description || existingPost.frontmatter.description,
+      description: description !== undefined ? description : existingPost.frontmatter.description,
       draft: draft !== undefined ? draft : existingPost.frontmatter.draft,
-      tags: tags || existingPost.frontmatter.tags,
+      tags: tags !== undefined ? tags : existingPost.frontmatter.tags,
       pinned: pinned !== undefined ? pinned : existingPost.frontmatter.pinned,
     };
 
@@ -167,7 +167,7 @@ router.put('/:id(*)', async (req, res) => {
       (title && title !== existingPost.frontmatter.title) ||
       (description !== undefined && description !== existingPost.frontmatter.description) ||
       (draft !== undefined && draft !== existingPost.frontmatter.draft) ||
-      (tags && JSON.stringify(tags) !== JSON.stringify(existingPost.frontmatter.tags)) ||
+      (tags !== undefined && JSON.stringify(tags) !== JSON.stringify(existingPost.frontmatter.tags)) ||
       (pinned !== undefined && pinned !== existingPost.frontmatter.pinned) ||
       (coverImage !== undefined) ||  // 封面图是否更改
       (body !== undefined && body !== existingPost.body);

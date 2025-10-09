@@ -80,7 +80,7 @@ router.post('/', async (req, res) => {
     const frontmatter = {
       ...getDefaultFrontmatter('note'),
       title,
-      description: description || ''
+      description: description !== undefined ? description : ''
     };
     
     const filePath = await generateFilePath(CONTENT_PATHS.notes, 'note', title);

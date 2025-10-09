@@ -91,8 +91,8 @@ router.post('/', async (req, res) => {
 
     const frontmatter = {
       ...getDefaultFrontmatter('tag'),
-      title: title || name,
-      description: description || ''
+      title: title !== undefined ? title : name,
+      description: description !== undefined ? description : ''
     };
 
     const filePath = await generateFilePath(CONTENT_PATHS.tags, 'tag', name);
