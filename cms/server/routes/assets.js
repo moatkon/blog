@@ -8,10 +8,11 @@ const router = express.Router();
 
 // 配置multer用于文件上传
 const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadPath = path.join(CONTENT_PATHS.assets, req.body.folder || '');
-    await fs.ensureDir(uploadPath);
-    cb(null, uploadPath);
+  destination: (req, file, cb) => {
+    // 在multer中获取字段值的另一种方式
+    // 使用一个自定义的字段解析器来 extract fields from multipart data
+    // 但我们需要 to wait for the fields to be parsed first
+    cb(null, CONTENT_PATHS.assets); // 默认先上传到assets目录，然后在路由中移动到正确位置
   },
   filename: (req, file, cb) => {
     // 保持原文件名，如果有重复则添加时间戳
@@ -26,6 +27,57 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB限制
   }
+});
+
+// 上传文件
+router.post('/upload', (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) {
+      console.error('Error uploading file:', err);
+      return res.status(500).json({ error: 'Failed to upload file' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    try {
+      // 获取folder参数
+      const folder = req.body.folder || '';
+      
+      // 如果指定了文件夹，则将文件移动到正确位置
+      if (folder) {
+        const targetDir = path.join(CONTENT_PATHS.assets, folder);
+        await fs.ensureDir(targetDir);
+        
+        const targetPath = path.join(targetDir, req.file.filename);
+        await fs.move(req.file.path, targetPath);
+        
+        // 更新文件路径信息
+        req.file.path = targetPath;
+        req.file.destination = targetDir;
+      }
+
+      const relativePath = path.relative(CONTENT_PATHS.assets, req.file.path);
+      
+      res.json({
+        message: 'File uploaded successfully',
+        file: {
+          name: req.file.filename,
+          path: relativePath.replace(/\\\\/g, '/'),
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        }
+      });
+    } catch (error) {
+      console.error('Error processing uploaded file:', error);
+      // 如果处理失败，删除已上传的文件
+      if (req.file && req.file.path) {
+        await fs.remove(req.file.path);
+      }
+      res.status(500).json({ error: 'Failed to process uploaded file' });
+    }
+  });
 });
 
 // 递归获取目录结构
@@ -102,29 +154,7 @@ router.get('/folder/*', async (req, res) => {
   }
 });
 
-// 上传文件
-router.post('/upload', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    const relativePath = path.relative(CONTENT_PATHS.assets, req.file.path);
-    
-    res.json({
-      message: 'File uploaded successfully',
-      file: {
-        name: req.file.filename,
-        path: relativePath.replace(/\\/g, '/'),
-        size: req.file.size,
-        mimetype: req.file.mimetype
-      }
-    });
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    res.status(500).json({ error: 'Failed to upload file' });
-  }
-});
+
 
 // 创建文件夹
 router.post('/folder', async (req, res) => {
