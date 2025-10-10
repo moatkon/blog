@@ -2,11 +2,11 @@
 title: 记录2025年十一国庆假期
 description: 记录十一
 publishDate: '2025-10-06 01:33:28'
-draft: true
+draft: false
 tags:
   - 记录
 pinned: false
-updatedDate: '2025-10-10 23:23:20'
+updatedDate: '2025-10-10 23:27:08'
 ---
 
 #### 2025.09.30
