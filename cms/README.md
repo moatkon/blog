@@ -55,8 +55,12 @@
 cd cms
 npm install
 
+如果不行,执行:
+npm run install:all
+
 # 安装前端依赖
 cd client
+如果不行,执行:
 npm install
 ```
 
