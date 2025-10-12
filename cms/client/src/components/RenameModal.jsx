@@ -39,6 +39,15 @@ const RenameModal = ({ isOpen, onClose, onRename, currentPath, title, type }) =>
         <form onSubmit={handleSubmit}>
           <div className="p-4 space-y-4">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                当前路径/文件名
+              </label>
+              <div className="p-2 bg-gray-50 border border-gray-200 rounded-md font-mono text-sm break-all">
+                {currentPath}
+              </div>
+            </div>
+            
+            <div>
               <label htmlFor="newPath" className="block text-sm font-medium text-gray-700 mb-1">
                 新的路径/文件名
               </label>
@@ -47,8 +56,8 @@ const RenameModal = ({ isOpen, onClose, onRename, currentPath, title, type }) =>
                 id="newPath"
                 value={newPath}
                 onChange={(e) => setNewPath(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                placeholder="输入新的路径/文件名"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono"
+                placeholder="修改当前路径/文件名"
                 required
               />
               <p className="mt-1 text-xs text-gray-500">
