@@ -54,9 +54,10 @@ export async function stripImageMetadata(inputPath, outputPath = null, options =
     optimizeForWeb = true
   } = options;
 
-  if (!outputPath) {
-    outputPath = inputPath;
-  }
+  const isInPlace = !outputPath;
+  const tempPath = isInPlace ? `${inputPath}.tmp` : null;
+  const finalOutputPath = outputPath || inputPath;
+  const actualOutputPath = isInPlace ? tempPath : outputPath;
 
   try {
     if (!isSupportedImageFormat(inputPath)) {
@@ -69,22 +70,17 @@ export async function stripImageMetadata(inputPath, outputPath = null, options =
 
     // 读取EXIF信息（用于日志记录）
     const originalExif = await readImageExif(inputPath);
-    
+
     // 获取图片信息
     const image = sharp(inputPath);
     const metadata = await image.metadata();
-    
-    // 创建处理管道，移除所有元数据
-    // 首先获取图片数据，然后重新创建不带元数据的图片
-    const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
 
-    let pipeline = sharp(data, {
-      raw: {
-        width: info.width,
-        height: info.height,
-        channels: info.channels
-      }
-    });
+    // 创建处理管道，移除所有元数据但保持图片方向
+    // 使用 rotate() 方法保持原有方向，然后通过重新编码移除元数据
+    let pipeline = sharp(inputPath)
+      .rotate(); // 根据EXIF方向信息自动旋转，保持视觉方向正确
+
+    // 注意：不使用 withMetadata(false)，而是通过重新编码来移除元数据
 
     // 根据图片格式进行优化
     const ext = path.extname(inputPath).toLowerCase();
@@ -118,25 +114,28 @@ export async function stripImageMetadata(inputPath, outputPath = null, options =
       });
     }
 
-    // 如果输出路径与输入路径不同，确保输出目录存在
-    if (outputPath !== inputPath) {
-      await fs.ensureDir(path.dirname(outputPath));
+    // 确保输出目录存在
+    await fs.ensureDir(path.dirname(actualOutputPath));
+
+    // 处理图片到临时文件或最终输出路径
+    await pipeline.toFile(actualOutputPath);
+
+    // 如果是就地处理，将临时文件替换原文件
+    if (isInPlace) {
+      await fs.move(tempPath, finalOutputPath, { overwrite: true });
     }
 
-    // 处理图片
-    await pipeline.toFile(outputPath);
-
     // 获取处理后的文件信息
-    const processedStats = await fs.stat(outputPath);
+    const processedStats = await fs.stat(finalOutputPath);
     const processedSize = processedStats.size;
 
     // 验证元数据是否已被移除
-    const processedExif = await readImageExif(outputPath);
+    const processedExif = await readImageExif(finalOutputPath);
 
     const result = {
       success: true,
       inputPath,
-      outputPath,
+      outputPath: finalOutputPath,
       originalSize,
       processedSize,
       compressionRatio: ((originalSize - processedSize) / originalSize * 100).toFixed(2),
@@ -163,11 +162,21 @@ export async function stripImageMetadata(inputPath, outputPath = null, options =
 
   } catch (error) {
     console.error(`Error processing image ${inputPath}:`, error);
+
+    // 清理临时文件（如果存在）
+    if (isInPlace && tempPath && await fs.pathExists(tempPath)) {
+      try {
+        await fs.remove(tempPath);
+      } catch (cleanupError) {
+        console.warn(`Failed to cleanup temp file ${tempPath}:`, cleanupError.message);
+      }
+    }
+
     return {
       success: false,
       error: error.message,
       inputPath,
-      outputPath
+      outputPath: finalOutputPath
     };
   }
 }
