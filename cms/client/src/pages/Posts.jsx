@@ -201,6 +201,9 @@ const Posts = () => {
                     标题
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    路径/文件名
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     状态
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -241,6 +244,11 @@ const Posts = () => {
                         <div className="text-sm text-gray-500 truncate max-w-xs">
                           {post.description}
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 font-mono">
+                        {post.id}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
