@@ -2,7 +2,13 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs-extra';
-import { CONTENT_PATHS } from '../config.js';
+import { CONTENT_PATHS, IMAGE_PROCESSING_CONFIG } from '../config.js';
+import {
+  stripImageMetadata,
+  isSupportedImageFormat,
+  checkImagePrivacy,
+  getImageInfo
+} from '../utils/imageProcessor.js';
 
 const router = express.Router();
 
@@ -22,10 +28,18 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB限制
+    fileSize: IMAGE_PROCESSING_CONFIG.maxFileSize
+  },
+  fileFilter: (req, file, cb) => {
+    // 检查文件类型
+    const isImage = file.mimetype.startsWith('image/');
+    if (isImage && !isSupportedImageFormat(file.originalname)) {
+      return cb(new Error(`Unsupported image format: ${path.extname(file.originalname)}`));
+    }
+    cb(null, true);
   }
 });
 
@@ -44,23 +58,65 @@ router.post('/upload', (req, res) => {
     try {
       // 获取folder参数
       const folder = req.body.folder || '';
-      
+
       // 如果指定了文件夹，则将文件移动到正确位置
       if (folder) {
         const targetDir = path.join(CONTENT_PATHS.assets, folder);
         await fs.ensureDir(targetDir);
-        
+
         const targetPath = path.join(targetDir, req.file.filename);
         await fs.move(req.file.path, targetPath);
-        
+
         // 更新文件路径信息
         req.file.path = targetPath;
         req.file.destination = targetDir;
       }
 
+      let processingResult = null;
+      let privacyCheck = null;
+
+      // 检查是否为图片文件，如果是则进行处理
+      const isImage = req.file.mimetype.startsWith('image/');
+      if (isImage && isSupportedImageFormat(req.file.path)) {
+
+        // 隐私检查
+        if (IMAGE_PROCESSING_CONFIG.enablePrivacyCheck) {
+          privacyCheck = await checkImagePrivacy(req.file.path);
+          if (IMAGE_PROCESSING_CONFIG.enableLogging && privacyCheck.hasSensitiveData) {
+            console.warn(`Privacy issues detected in uploaded image ${req.file.filename}:`, privacyCheck.issues);
+          }
+        }
+
+        // 抹除元信息
+        if (IMAGE_PROCESSING_CONFIG.enableMetadataStripping) {
+          processingResult = await stripImageMetadata(req.file.path, null, {
+            quality: IMAGE_PROCESSING_CONFIG.quality,
+            progressive: IMAGE_PROCESSING_CONFIG.progressive,
+            optimizeForWeb: IMAGE_PROCESSING_CONFIG.optimizeForWeb
+          });
+
+          if (!processingResult.success) {
+            console.error('Failed to process image metadata:', processingResult.error);
+            // 继续处理，不因为元数据处理失败而中断上传
+          } else if (IMAGE_PROCESSING_CONFIG.enableLogging) {
+            console.log(`Image metadata stripped for ${req.file.filename}:`, {
+              compressionRatio: processingResult.compressionRatio,
+              exifRemoved: processingResult.exifRemoved.exifRemoved
+            });
+          }
+
+          // 更新文件大小信息
+          if (processingResult.success) {
+            const newStats = await fs.stat(req.file.path);
+            req.file.size = newStats.size;
+          }
+        }
+      }
+
       const relativePath = path.relative(CONTENT_PATHS.assets, req.file.path);
-      
-      res.json({
+
+      // 构建响应数据
+      const responseData = {
         message: 'File uploaded successfully',
         file: {
           name: req.file.filename,
@@ -68,7 +124,28 @@ router.post('/upload', (req, res) => {
           size: req.file.size,
           mimetype: req.file.mimetype
         }
-      });
+      };
+
+      // 添加图片处理信息（如果有的话）
+      if (isImage && processingResult) {
+        responseData.imageProcessing = {
+          metadataStripped: processingResult.success && processingResult.exifRemoved.exifRemoved,
+          compressionRatio: processingResult.success ? processingResult.compressionRatio : null,
+          originalSize: processingResult.success ? processingResult.originalSize : null,
+          processedSize: processingResult.success ? processingResult.processedSize : null
+        };
+      }
+
+      // 添加隐私检查信息（如果有的话）
+      if (privacyCheck) {
+        responseData.privacyCheck = {
+          hadSensitiveData: privacyCheck.hasSensitiveData,
+          issuesFound: privacyCheck.issues.length,
+          issues: privacyCheck.issues
+        };
+      }
+
+      res.json(responseData);
     } catch (error) {
       console.error('Error processing uploaded file:', error);
       // 如果处理失败，删除已上传的文件
@@ -155,6 +232,83 @@ router.get('/folder/*', async (req, res) => {
 });
 
 
+
+// 检查图片隐私信息
+router.get('/privacy-check/:path(*)', async (req, res) => {
+  try {
+    const filePath = req.params.path;
+    const fullPath = path.join(CONTENT_PATHS.assets, filePath);
+
+    // 安全检查
+    if (!fullPath.startsWith(CONTENT_PATHS.assets)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!await fs.pathExists(fullPath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    if (!isSupportedImageFormat(fullPath)) {
+      return res.status(400).json({ error: 'File is not a supported image format' });
+    }
+
+    const privacyCheck = await checkImagePrivacy(fullPath);
+    const imageInfo = await getImageInfo(fullPath);
+
+    res.json({
+      file: filePath,
+      imageInfo,
+      privacyCheck
+    });
+  } catch (error) {
+    console.error('Error checking image privacy:', error);
+    res.status(500).json({ error: 'Failed to check image privacy' });
+  }
+});
+
+// 手动处理图片元信息
+router.post('/strip-metadata/:path(*)', async (req, res) => {
+  try {
+    const filePath = req.params.path;
+    const fullPath = path.join(CONTENT_PATHS.assets, filePath);
+
+    // 安全检查
+    if (!fullPath.startsWith(CONTENT_PATHS.assets)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!await fs.pathExists(fullPath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    if (!isSupportedImageFormat(fullPath)) {
+      return res.status(400).json({ error: 'File is not a supported image format' });
+    }
+
+    const options = {
+      quality: req.body.quality || IMAGE_PROCESSING_CONFIG.quality,
+      progressive: req.body.progressive !== undefined ? req.body.progressive : IMAGE_PROCESSING_CONFIG.progressive,
+      optimizeForWeb: req.body.optimizeForWeb !== undefined ? req.body.optimizeForWeb : IMAGE_PROCESSING_CONFIG.optimizeForWeb
+    };
+
+    const result = await stripImageMetadata(fullPath, null, options);
+
+    if (result.success) {
+      res.json({
+        message: 'Image metadata stripped successfully',
+        result
+      });
+    } else {
+      res.status(500).json({
+        error: 'Failed to strip image metadata',
+        details: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error stripping image metadata:', error);
+    res.status(500).json({ error: 'Failed to strip image metadata' });
+  }
+});
 
 // 创建文件夹
 router.post('/folder', async (req, res) => {

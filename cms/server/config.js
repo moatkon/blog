@@ -18,6 +18,36 @@ export const CONTENT_PATHS = {
 // 支持的文件扩展名
 export const SUPPORTED_EXTENSIONS = ['.md', '.mdx'];
 
+// 图片处理配置
+export const IMAGE_PROCESSING_CONFIG = {
+  // 是否启用图片元信息抹除
+  enableMetadataStripping: true,
+
+  // 是否启用图片优化
+  enableOptimization: true,
+
+  // 图片质量设置 (1-100)
+  quality: 85,
+
+  // 是否使用渐进式JPEG
+  progressive: true,
+
+  // 是否针对Web优化
+  optimizeForWeb: true,
+
+  // 支持的图片格式
+  supportedFormats: ['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.tif'],
+
+  // 最大文件大小 (字节)
+  maxFileSize: 10 * 1024 * 1024, // 10MB
+
+  // 是否记录处理日志
+  enableLogging: true,
+
+  // 是否在上传前检查隐私风险
+  enablePrivacyCheck: true
+};
+
 // 获取北京时间的工具函数
 export function getBeijingTime(format = 'iso') {
   const now = new Date();
