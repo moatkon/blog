@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Plus, Edit, Trash2, Eye, Search, Filter } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, Search, Filter, FileText } from 'lucide-react'
 import { postsAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import PreviewModal from '../components/PreviewModal'
+import RenameModal from '../components/RenameModal'
 
 const Posts = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -15,6 +16,8 @@ const Posts = () => {
   const [filter, setFilter] = useState(searchParams.get('filter') || 'all') // all, published, draft
   const [previewPost, setPreviewPost] = useState(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [renamePost, setRenamePost] = useState(null)
+  const [showRenameModal, setShowRenameModal] = useState(false)
 
   useEffect(() => {
     loadPosts()
@@ -100,6 +103,23 @@ const Posts = () => {
     } catch (error) {
       console.error('Error loading post for preview:', error)
       toast.error('加载Post内容失败')
+    }
+  }
+
+  const handleRename = async (post) => {
+    setRenamePost(post);
+    setShowRenameModal(true);
+  };
+
+  const onRenameSubmit = async (newPath) => {
+    try {
+      await postsAPI.rename(renamePost.id, { newPath });
+      toast.success('路径更新成功');
+      loadPosts(); // 重新加载posts列表
+      setShowRenameModal(false);
+    } catch (error) {
+      console.error('Error renaming post:', error);
+      throw error;
     }
   }
 
@@ -267,6 +287,13 @@ const Posts = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() => handleRename(post)}
+                          className="text-purple-600 hover:text-purple-900"
+                          title="重命名文件"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </button>
                         <Link
                           to={`/posts/edit/${post.id}`}
                           className="text-blue-600 hover:text-blue-900"
@@ -301,6 +328,16 @@ const Posts = () => {
         onClose={() => setShowPreviewModal(false)}
         title={previewPost?.title || ''}
         content={previewPost?.body || ''}
+        type="post"
+      />
+      
+      {/* 重命名模态框 */}
+      <RenameModal
+        isOpen={showRenameModal}
+        onClose={() => setShowRenameModal(false)}
+        onRename={onRenameSubmit}
+        currentPath={renamePost?.id}
+        title={renamePost?.title}
         type="post"
       />
     </div>

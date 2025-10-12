@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Edit, Trash2, Eye, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, Search, FileText } from 'lucide-react'
 import { notesAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import PreviewModal from '../components/PreviewModal'
+import RenameModal from '../components/RenameModal'
 
 const Notes = () => {
   const [notes, setNotes] = useState([])
@@ -13,6 +14,8 @@ const Notes = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [previewNote, setPreviewNote] = useState(null)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [renameNote, setRenameNote] = useState(null)
+  const [showRenameModal, setShowRenameModal] = useState(false)
 
   useEffect(() => {
     loadNotes()
@@ -72,6 +75,23 @@ const Notes = () => {
     } catch (error) {
       console.error('Error loading note for preview:', error)
       toast.error('加载Note内容失败')
+    }
+  }
+
+  const handleRename = async (note) => {
+    setRenameNote(note);
+    setShowRenameModal(true);
+  };
+
+  const onRenameSubmit = async (newPath) => {
+    try {
+      await notesAPI.rename(renameNote.id, { newPath });
+      toast.success('路径更新成功');
+      loadNotes(); // 重新加载notes列表
+      setShowRenameModal(false);
+    } catch (error) {
+      console.error('Error renaming note:', error);
+      throw error;
     }
   }
 
@@ -168,6 +188,13 @@ const Notes = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() => handleRename(note)}
+                          className="text-purple-600 hover:text-purple-900"
+                          title="重命名文件"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </button>
                         <Link
                           to={`/notes/edit/${note.id}`}
                           className="text-green-600 hover:text-green-900"
@@ -202,6 +229,16 @@ const Notes = () => {
         onClose={() => setShowPreviewModal(false)}
         title={previewNote?.title || ''}
         content={previewNote?.body || ''}
+        type="note"
+      />
+      
+      {/* 重命名模态框 */}
+      <RenameModal
+        isOpen={showRenameModal}
+        onClose={() => setShowRenameModal(false)}
+        onRename={onRenameSubmit}
+        currentPath={renameNote?.id}
+        title={renameNote?.title}
         type="note"
       />
     </div>

@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs-extra';
 import { CONTENT_PATHS, getDefaultFrontmatter, getBeijingTime } from '../config.js';
 import { 
   getAllMarkdownFiles, 
@@ -162,6 +163,40 @@ router.delete('/:id(*)', async (req, res) => {
   } catch (error) {
     console.error('Error deleting note:', error);
     res.status(500).json({ error: 'Failed to delete note' });
+  }
+});
+
+// 重命名note路径
+router.put('/:id(*)/rename', async (req, res) => {
+  try {
+    const { newPath } = req.body;
+    
+    if (!newPath) {
+      return res.status(400).json({ error: 'New path is required' });
+    }
+
+    const oldFilePath = path.join(CONTENT_PATHS.notes, req.params.id);
+    const newFilePath = path.join(CONTENT_PATHS.notes, newPath);
+
+    // 检查目标路径是否已存在
+    if (await fs.pathExists(newFilePath)) {
+      return res.status(409).json({ error: 'New path already exists' });
+    }
+
+    // 确保目标目录存在
+    await fs.ensureDir(path.dirname(newFilePath));
+
+    // 重命名文件
+    await fs.move(oldFilePath, newFilePath);
+
+    res.json({ 
+      message: 'Note path updated successfully',
+      newPath: newPath,
+      oldPath: req.params.id
+    });
+  } catch (error) {
+    console.error('Error renaming note:', error);
+    res.status(500).json({ error: 'Failed to rename note' });
   }
 });
 

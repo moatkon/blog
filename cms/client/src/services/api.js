@@ -11,7 +11,8 @@ export const postsAPI = {
   getById: (id) => api.get(`/posts/${id}`),
   create: (data) => api.post('/posts', data),
   update: (id, data) => api.put(`/posts/${id}`, data),
-  delete: (id) => api.delete(`/posts/${id}`)
+  delete: (id) => api.delete(`/posts/${id}`),
+  rename: (id, data) => api.put(`/posts/${id}/rename`, data)
 }
 
 // Notes API
@@ -20,7 +21,8 @@ export const notesAPI = {
   getById: (id) => api.get(`/notes/${id}`),
   create: (data) => api.post('/notes', data),
   update: (id, data) => api.put(`/notes/${id}`, data),
-  delete: (id) => api.delete(`/notes/${id}`)
+  delete: (id) => api.delete(`/notes/${id}`),
+  rename: (id, data) => api.put(`/notes/${id}/rename`, data)
 }
 
 // Tags API
