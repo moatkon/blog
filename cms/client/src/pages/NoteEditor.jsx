@@ -66,7 +66,7 @@ const NoteEditor = () => {
     title: '',
     description: '',
     body: '',
-    publishDate: '' // 发布日期
+    publishDate: isNewNote ? formatDateForNote(new Date()) : '' // 新建时自动填充当前时间
   })
   const [originalNote, setOriginalNote] = useState(null) // 存储原始note数据用于比较
   const [loading, setLoading] = useState(false)

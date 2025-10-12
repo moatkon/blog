@@ -70,7 +70,7 @@ const PostEditor = () => {
     tags: [],
     pinned: false,
     coverImage: null, // { src: '', alt: '' }
-    publishDate: '' // 发布日期
+    publishDate: isNewPost ? formatDateForPost(new Date()) : '' // 新建时自动填充当前时间
   })
   const [originalPost, setOriginalPost] = useState(null) // 存储原始post数据用于比较
   const [availableTags, setAvailableTags] = useState([])
