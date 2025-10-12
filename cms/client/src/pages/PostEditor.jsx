@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Save, ArrowLeft, Eye, Image as ImageIcon, X } from 'lucide-react'
+import { Save, ArrowLeft, Eye, Image as ImageIcon, X, Clock } from 'lucide-react'
 import { postsAPI, tagsAPI } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor'
 import ImagePickerModal from '../components/ImagePickerModal'
@@ -12,6 +12,50 @@ const PostEditor = () => {
   const params = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+
+  // 格式化时间为Posts的简单格式 (YYYY-MM-DD HH:mm:ss)
+  const formatDateForPost = (date) => {
+    if (!date) return ''
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return ''
+
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    const seconds = String(d.getSeconds()).padStart(2, '0')
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+
+  // 将Posts的简单格式转换为datetime-local输入格式 (YYYY-MM-DDTHH:mm)
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return ''
+    try {
+      // Posts格式: "2024-01-01 12:30:45"
+      const [datePart, timePart] = dateStr.split(' ')
+      if (!datePart || !timePart) return ''
+      const [hours, minutes] = timePart.split(':')
+      return `${datePart}T${hours}:${minutes}`
+    } catch (error) {
+      console.error('Error formatting date for input:', error)
+      return ''
+    }
+  }
+
+  // 从datetime-local输入格式转换为Posts的简单格式
+  const formatInputForPost = (inputValue) => {
+    if (!inputValue) return ''
+    try {
+      // 输入格式: "2024-01-01T12:30"
+      const date = new Date(inputValue)
+      return formatDateForPost(date)
+    } catch (error) {
+      console.error('Error formatting input for post:', error)
+      return ''
+    }
+  }
 
   // 从路径中提取完整的ID
   const isNewPost = location.pathname === '/posts/new'
@@ -25,7 +69,8 @@ const PostEditor = () => {
     draft: true,
     tags: [],
     pinned: false,
-    coverImage: null // { src: '', alt: '' }
+    coverImage: null, // { src: '', alt: '' }
+    publishDate: '' // 发布日期
   })
   const [originalPost, setOriginalPost] = useState(null) // 存储原始post数据用于比较
   const [availableTags, setAvailableTags] = useState([])
@@ -63,7 +108,8 @@ const PostEditor = () => {
         draft: post.draft !== undefined ? post.draft : true,
         tags: post.tags || [],
         pinned: post.pinned || false,
-        coverImage: post.coverImage || null
+        coverImage: post.coverImage || null,
+        publishDate: post.publishDate || ''
       }
       setFormData(postData)
       setOriginalPost(postData) // 保存原始数据用于比较
@@ -217,6 +263,13 @@ const PostEditor = () => {
     }
   }, [currentId, originalPost, isCreating]);
 
+  // 设置当前时间
+  const setCurrentTime = () => {
+    const now = new Date()
+    const formattedTime = formatDateForPost(now)
+    setFormData(prev => ({ ...prev, publishDate: formattedTime }))
+  }
+
   // 使用自动保存Hook
   const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({
     saveFunction: autoSaveFunction,
@@ -345,6 +398,38 @@ const PostEditor = () => {
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* 发布日期 */}
+            <div>
+              <label htmlFor="publishDate" className="block text-sm font-medium text-gray-700">
+                发布日期
+              </label>
+              <div className="mt-1 flex space-x-2">
+                <input
+                  type="datetime-local"
+                  id="publishDate"
+                  value={formatDateForInput(formData.publishDate)}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    publishDate: formatInputForPost(e.target.value)
+                  }))}
+                  className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+                <button
+                  type="button"
+                  onClick={setCurrentTime}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  title="设置为当前时间"
+                >
+                  <Clock className="h-4 w-4" />
+                </button>
+              </div>
+              {formData.publishDate && (
+                <p className="mt-1 text-sm text-gray-500">
+                  格式: {formData.publishDate}
+                </p>
               )}
             </div>
 

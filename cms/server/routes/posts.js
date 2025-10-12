@@ -143,7 +143,7 @@ router.put('/:id(*)/rename', async (req, res) => {
 // 创建新post
 router.post('/', async (req, res) => {
   try {
-    const { title, description, body, draft = true, tags = [], pinned = false, coverImage = null } = req.body;
+    const { title, description, body, draft = true, tags = [], pinned = false, coverImage = null, publishDate } = req.body;
     
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -157,6 +157,11 @@ router.post('/', async (req, res) => {
       tags: tags || [],
       pinned
     };
+
+    // 如果提供了publishDate，使用它；否则使用默认值
+    if (publishDate) {
+      frontmatter.publishDate = publishDate;
+    }
 
     // 添加封面图信息（如果有的话）
     if (coverImage && coverImage.src) {
@@ -192,7 +197,7 @@ router.put('/:id(*)', async (req, res) => {
       return res.status(404).json({ error: 'Post not found' });
     }
     
-    const { title, description, body, draft, tags, pinned, coverImage } = req.body;
+    const { title, description, body, draft, tags, pinned, coverImage, publishDate } = req.body;
     
     const updatedFrontmatter = {
       ...existingPost.frontmatter,
@@ -203,13 +208,19 @@ router.put('/:id(*)', async (req, res) => {
       pinned: pinned !== undefined ? pinned : existingPost.frontmatter.pinned,
     };
 
+    // 如果提供了publishDate，更新它
+    if (publishDate !== undefined) {
+      updatedFrontmatter.publishDate = publishDate;
+    }
+
     // 检查是否有实际更改，如果有则更新 updatedDate
-    const hasChanges = 
+    const hasChanges =
       (title && title !== existingPost.frontmatter.title) ||
       (description !== undefined && description !== existingPost.frontmatter.description) ||
       (draft !== undefined && draft !== existingPost.frontmatter.draft) ||
       (tags !== undefined && JSON.stringify(tags) !== JSON.stringify(existingPost.frontmatter.tags)) ||
       (pinned !== undefined && pinned !== existingPost.frontmatter.pinned) ||
+      (publishDate !== undefined && publishDate !== existingPost.frontmatter.publishDate) ||
       (coverImage !== undefined) ||  // 封面图是否更改
       (body !== undefined && body !== existingPost.body);
 

@@ -112,7 +112,7 @@ router.put('/:id(*)/rename', async (req, res) => {
 // 创建新note
 router.post('/', async (req, res) => {
   try {
-    const { title, description, body } = req.body;
+    const { title, description, body, publishDate } = req.body;
     
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
@@ -123,6 +123,11 @@ router.post('/', async (req, res) => {
       title,
       description: description !== undefined ? description : ''
     };
+
+    // 如果提供了publishDate，使用它；否则使用默认值
+    if (publishDate) {
+      frontmatter.publishDate = publishDate;
+    }
     
     const filePath = await generateFilePath(CONTENT_PATHS.notes, 'note', title);
     const success = await writeMarkdownFile(filePath, frontmatter, body || '');
@@ -153,12 +158,13 @@ router.put('/:id(*)', async (req, res) => {
       return res.status(404).json({ error: 'Note not found' });
     }
     
-    const { title, description, body } = req.body;
+    const { title, description, body, publishDate } = req.body;
     
     // 检查是否有实际更改
-    const hasChanges = 
+    const hasChanges =
       (title && title !== existingNote.frontmatter.title) ||
       (description !== undefined && description !== existingNote.frontmatter.description) ||
+      (publishDate !== undefined && publishDate !== existingNote.frontmatter.publishDate) ||
       (body !== undefined && body !== existingNote.body);
 
     if (!hasChanges) {
@@ -171,6 +177,11 @@ router.put('/:id(*)', async (req, res) => {
       title: title || existingNote.frontmatter.title,
       description: description !== undefined ? description : existingNote.frontmatter.description
     };
+
+    // 如果提供了publishDate，更新它
+    if (publishDate !== undefined) {
+      updatedFrontmatter.publishDate = publishDate;
+    }
     
     const success = await writeMarkdownFile(
       filePath, 

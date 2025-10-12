@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Save, ArrowLeft } from 'lucide-react'
+import { Save, ArrowLeft, Clock } from 'lucide-react'
 import { notesAPI } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor'
 import AutoSaveIndicator from '../components/AutoSaveIndicator'
@@ -12,6 +12,51 @@ const NoteEditor = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
+  // 格式化时间为Notes的ISO格式 (YYYY-MM-DDTHH:mm:ss+08:00)
+  const formatDateForNote = (date) => {
+    if (!date) return ''
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return ''
+
+    // 转换为北京时间并格式化为ISO格式
+    const beijingTime = new Date(d.getTime() + (8 * 60 * 60 * 1000))
+    return beijingTime.toISOString().replace('Z', '+08:00')
+  }
+
+  // 将Notes的ISO格式转换为datetime-local输入格式 (YYYY-MM-DDTHH:mm)
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return ''
+    try {
+      // Notes格式: "2024-01-01T12:30:45+08:00"
+      const date = new Date(dateStr)
+      if (isNaN(date.getTime())) return ''
+
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    } catch (error) {
+      console.error('Error formatting date for input:', error)
+      return ''
+    }
+  }
+
+  // 从datetime-local输入格式转换为Notes的ISO格式
+  const formatInputForNote = (inputValue) => {
+    if (!inputValue) return ''
+    try {
+      // 输入格式: "2024-01-01T12:30"
+      const date = new Date(inputValue)
+      return formatDateForNote(date)
+    } catch (error) {
+      console.error('Error formatting input for note:', error)
+      return ''
+    }
+  }
+
   // 从路径中提取完整的ID
   const isNewNote = location.pathname === '/notes/new'
   const id = isNewNote ? null : (params['*'] || location.pathname.replace('/notes/edit/', ''))
@@ -20,7 +65,8 @@ const NoteEditor = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    body: ''
+    body: '',
+    publishDate: '' // 发布日期
   })
   const [originalNote, setOriginalNote] = useState(null) // 存储原始note数据用于比较
   const [loading, setLoading] = useState(false)
@@ -42,7 +88,8 @@ const NoteEditor = () => {
       const noteData = {
         title: note.title || '',
         description: note.description || '',
-        body: note.body || ''
+        body: note.body || '',
+        publishDate: note.publishDate || ''
       }
       setFormData(noteData)
       setOriginalNote(noteData) // 保存原始数据用于比较
@@ -170,6 +217,13 @@ const NoteEditor = () => {
     }
   }, [currentId, originalNote, isCreating]);
 
+  // 设置当前时间
+  const setCurrentTime = () => {
+    const now = new Date()
+    const formattedTime = formatDateForNote(now)
+    setFormData(prev => ({ ...prev, publishDate: formattedTime }))
+  }
+
   // 使用自动保存Hook
   const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({
     saveFunction: autoSaveFunction,
@@ -248,6 +302,38 @@ const NoteEditor = () => {
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                 placeholder="输入Note描述（可选）"
               />
+            </div>
+
+            {/* 发布日期 */}
+            <div>
+              <label htmlFor="publishDate" className="block text-sm font-medium text-gray-700">
+                发布日期
+              </label>
+              <div className="mt-1 flex space-x-2">
+                <input
+                  type="datetime-local"
+                  id="publishDate"
+                  value={formatDateForInput(formData.publishDate)}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    publishDate: formatInputForNote(e.target.value)
+                  }))}
+                  className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
+                />
+                <button
+                  type="button"
+                  onClick={setCurrentTime}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  title="设置为当前时间"
+                >
+                  <Clock className="h-4 w-4" />
+                </button>
+              </div>
+              {formData.publishDate && (
+                <p className="mt-1 text-sm text-gray-500">
+                  格式: {formData.publishDate}
+                </p>
+              )}
             </div>
           </div>
         </div>
