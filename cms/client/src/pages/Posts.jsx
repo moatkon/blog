@@ -201,9 +201,6 @@ const Posts = () => {
                     标题
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    路径/文件名
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     状态
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -217,6 +214,9 @@ const Posts = () => {
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     操作
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    路径/文件名
                   </th>
                 </tr>
               </thead>
@@ -244,11 +244,6 @@ const Posts = () => {
                         <div className="text-sm text-gray-500 truncate max-w-xs">
                           {post.description}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-mono">
-                        {post.id}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -314,6 +309,11 @@ const Posts = () => {
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
+                      </div>
+                    </td>
+                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 font-mono">
+                        {post.id}
                       </div>
                     </td>
                   </tr>
