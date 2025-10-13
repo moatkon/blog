@@ -48,15 +48,17 @@
 
 ## 安装和使用
 
+### 0.优先使用
+```bash
+npm run install:all
+```
+
 ### 1. 安装依赖
 
 ```bash
 # 安装根目录依赖
 cd cms
 npm install
-
-如果不行,执行:
-npm run install:all
 
 # 安装前端依赖
 cd client
