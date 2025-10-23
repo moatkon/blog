@@ -1,12 +1,12 @@
 ---
-title: 睡眠是一项长期投递
+title: 睡眠是一项长期投资
 description: ''
-publishDate: '2025-10-21 09:42:33'
-draft: true
+publishDate: '2025-10-24 00:32:38'
+draft: false
 tags:
   - 交易
 pinned: true
-updatedDate: '2025-10-21 18:11:30'
+updatedDate: '2025-10-24 00:35:44'
 ---
 睡眠是一项长期投资,收益在未来可以渐渐体现出来。
 
