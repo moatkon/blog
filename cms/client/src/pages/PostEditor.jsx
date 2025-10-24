@@ -149,7 +149,7 @@ const PostEditor = () => {
         // 如果正在创建中，等待创建完成后再处理
         toast.success('Post已保存')
       }
-      navigate('/posts?filter=draft')
+      navigate('/posts')
     } catch (error) {
       console.error('Error saving post:', error)
       toast.error(currentId ? '更新Post失败' : '创建Post失败')
