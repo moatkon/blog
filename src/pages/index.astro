@@ -21,10 +21,10 @@ const allPinnedPosts = allPosts
 	.sort(collectionDateSort)
 	.slice(0, MAX_PINNED_POSTS);
 
-// Notes
-const MAX_NOTES = 5;
-const allNotes = await getCollection("note");
-const latestNotes = allNotes.sort(collectionDateSort).slice(0, MAX_NOTES);
+// Notes 移除notes
+// const MAX_NOTES = 5;
+// const allNotes = await getCollection("note");
+// const latestNotes = allNotes.sort(collectionDateSort).slice(0, MAX_NOTES);
 ---
 
 <PageLayout meta={{ title: "Blog" }}>
@@ -65,7 +65,7 @@ const latestNotes = allNotes.sort(collectionDateSort).slice(0, MAX_NOTES);
 	}
 	<section class="mt-16">
 		<h2 class="title text-accent mb-6 text-xl">
-			<a href="/posts/">Posts</a>
+			<a href="/posts/" class="title text-accent text-xl">Posts</a>
 		</h2>
 		<ul class="space-y-4" role="list">
 			{
@@ -77,7 +77,7 @@ const latestNotes = allNotes.sort(collectionDateSort).slice(0, MAX_NOTES);
 			}
 		</ul>
 	</section>
-	{
+	<!-- {
 		latestNotes.length > 0 && (
 			<section class="mt-16">
 				<h2 class="title text-accent mb-6 text-xl">
@@ -92,5 +92,5 @@ const latestNotes = allNotes.sort(collectionDateSort).slice(0, MAX_NOTES);
 				</ul>
 			</section>
 		)
-	}
+	} -->
 </PageLayout>
