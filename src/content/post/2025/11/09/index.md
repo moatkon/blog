@@ -4,7 +4,7 @@ description: ''
 publishDate: '2025-11-09 15:46:32'
 draft: false
 tags:
-  - 记录
+  - 周记
 pinned: false
 updatedDate: '2025-11-09 22:29:13'
 ---
