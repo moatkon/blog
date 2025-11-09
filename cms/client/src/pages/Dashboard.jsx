@@ -53,13 +53,13 @@ const Dashboard = () => {
       color: 'bg-blue-500',
       link: '/posts'
     },
-    {
-      name: 'Notes',
-      value: stats.notes,
-      icon: StickyNote,
-      color: 'bg-green-500',
-      link: '/notes'
-    },
+    // {
+    //   name: 'Notes',
+    //   value: stats.notes,
+    //   icon: StickyNote,
+    //   color: 'bg-green-500',
+    //   link: '/notes'
+    // },
     {
       name: 'Tags',
       value: stats.tags,
@@ -134,13 +134,13 @@ const Dashboard = () => {
             <Plus className="h-4 w-4 mr-2" />
             新建Post
           </Link>
-          <Link
+          {/* <Link
             to="/notes/new"
             className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <Plus className="h-4 w-4 mr-2" />
             新建Note
-          </Link>
+          </Link> */}
           <Link
             to="/tags/new"
             className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"

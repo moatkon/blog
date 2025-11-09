@@ -18,9 +18,9 @@ function App() {
         <Route path="/posts" element={<Posts />} />
         <Route path="/posts/new" element={<PostEditor />} />
         <Route path="/posts/edit/*" element={<PostEditor />} />
-        <Route path="/notes" element={<Notes />} />
+        {/* <Route path="/notes" element={<Notes />} />
         <Route path="/notes/new" element={<NoteEditor />} />
-        <Route path="/notes/edit/*" element={<NoteEditor />} />
+        <Route path="/notes/edit/*" element={<NoteEditor />} /> */}
         <Route path="/tags" element={<Tags />} />
         <Route path="/tags/new" element={<TagEditor />} />
         <Route path="/tags/edit/:id" element={<TagEditor />} />

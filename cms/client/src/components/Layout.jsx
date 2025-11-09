@@ -17,7 +17,7 @@ const Layout = ({ children }) => {
   const navigation = [
     { name: '仪表板', href: '/', icon: Home },
     { name: 'Posts', href: '/posts', icon: FileText },
-    { name: 'Notes', href: '/notes', icon: StickyNote },
+    // { name: 'Notes', href: '/notes', icon: StickyNote },
     { name: 'Tags', href: '/tags', icon: Tag },
     { name: '静态资源', href: '/assets', icon: Image },
   ]
