@@ -1,3 +1,10 @@
+# 代理
+npm config set proxy http://10.4.1.19:7890
+npm config set https-proxy http://10.4.1.19:7890
+
+
+---
+
 
 # 创建 .npmrc 文件
 cat > .npmrc << EOF
