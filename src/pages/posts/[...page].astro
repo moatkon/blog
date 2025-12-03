@@ -15,7 +15,7 @@ import type { GetStaticPaths, Page } from "astro";
 import { Icon } from "astro-icon/components";
 
 export const getStaticPaths = (async ({ paginate }) => {
-	const MAX_POSTS_PER_PAGE = 30;
+	const MAX_POSTS_PER_PAGE = 20;
 	const MAX_TAGS = 7;
 	const MAX_PINNED_POSTS = 3;
 	const allPosts = await getAllPosts();
