@@ -13,11 +13,11 @@ export const getStaticPaths = (async ({ paginate }) => {
 	const uniqueYears = getUniqueYears(sortedPosts);
 
 	return uniqueYears.flatMap((year) => {
-		const postsInYear = sortedPosts.filter((post) =>
-			post.data.publishDate.getFullYear().toString() === year,
+		const postsInYear = sortedPosts.filter(
+			(post) => post.data.publishDate.getFullYear().toString() === year,
 		);
 		return paginate(postsInYear, {
-			pageSize: 10,
+			pageSize: 20,
 			params: { year },
 		});
 	});
@@ -77,7 +77,11 @@ const paginationProps = {
 		Posts from {year}
 	</h1>
 	<div class="prose prose-sm prose-cactus mb-8 max-w-none">
-		<p>All posts published in {year} ({page.total} post{page.total > 1 ? "s" : ""}).</p>
+		<p>
+			All posts published in {year} ({page.total} post{
+				page.total > 1 ? "s" : ""
+			}).
+		</p>
 	</div>
 	<ul class="space-y-4">
 		{
