@@ -92,7 +92,7 @@ const Dashboard = () => {
       </div>
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 lg:grid-cols-3 mb-8">
         {statCards.map((card) => {
           const Icon = card.icon
           return (
@@ -126,7 +126,7 @@ const Dashboard = () => {
       {/* 快速操作 */}
       <div className="mb-8">
         <h2 className="text-lg font-medium text-gray-900 mb-4">快速操作</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-3">
           <Link
             to="/posts/new"
             className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
