@@ -39,11 +39,11 @@ export default defineConfig({
 			lang: siteConfig.lang,
 			icon: "public/moatkon-icon.png", // the source for generating favicon & icons
 			icons: [
-				{
-					src: "icons/apple-touch-icon.png", // used in src/components/BaseHead.astro L:26
-					sizes: "180x180",
-					type: "image/png",
-				},
+				// {
+				// 	src: "icons/apple-touch-icon.png", // used in src/components/BaseHead.astro L:26
+				// 	sizes: "180x180",
+				// 	type: "image/png",
+				// },
 				{
 					src: "icons/icon-192.png",
 					sizes: "192x192",
