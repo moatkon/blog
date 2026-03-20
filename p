@@ -39,16 +39,10 @@ if [ -z "$(git status --porcelain)" ]; then
     exit 1
 fi
 
-timeValue=0
 
 # 获取提交注释
 if [ -z "$1" ]
   then
-    echo "=========>>>请在 $timeValue s内输入提交注释,否则使用默认提交信息进行提交 | 快捷操作:直接回车:"
-    read -t $timeValue message
-
-    # echo "=========>>>请在输入提交注释 | 如需默认提交信息,请按回车键 "
-    # read message
     if [ -z "$message" ]
       then
         # echo "必须输入提交注释!!!!!!!!!!!!"
