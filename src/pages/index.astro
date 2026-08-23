@@ -2,6 +2,7 @@
 import { type CollectionEntry, getCollection } from "astro:content";
 // import SocialList from "@/components/SocialList.astro";
 import PostPreview from "@/components/blog/PostPreview.astro";
+import X2PostPromo from "@/components/blog/X2PostPromo.astro";
 import Note from "@/components/note/Note.astro";
 import { getAllPosts } from "@/data/post";
 import PageLayout from "@/layouts/Base.astro";
@@ -28,6 +29,9 @@ const allPinnedPosts = allPosts
 ---
 
 <PageLayout meta={{ title: "Blog" }}>
+	<section class="mb-10">
+		<X2PostPromo />
+	</section>
 	<section>
 		<h1 class="title mb-6">Hello!</h1>
 		<p class="mb-4">I'm Moatkon,This is my blog.</p>

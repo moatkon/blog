@@ -2,6 +2,7 @@
 import type { CollectionEntry } from "astro:content";
 import Pagination from "@/components/Paginator.astro";
 import PostPreview from "@/components/blog/PostPreview.astro";
+import X2PostPromo from "@/components/blog/X2PostPromo.astro";
 import YearlyArchive from "@/components/stats/YearlyArchive.astro";
 import {
 	getAllPosts,
@@ -160,6 +161,10 @@ const descYearKeys = Object.keys(groupedByYear).sort((a, b) => +b - +a);
 					{/* 年份归档统计 */}
 					<div class="mt-8">
 						<YearlyArchive yearCounts={yearCounts} />
+					</div>
+
+					<div class="mt-8">
+						<X2PostPromo variant="vertical" />
 					</div>
 				</aside>
 			)

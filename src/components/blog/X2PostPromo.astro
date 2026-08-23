@@ -1,0 +1,43 @@
+---
+// X2Post 宣发卡片。
+// - 默认 horizontal：横向紧凑布局，用于博客首页。
+// - variant="vertical"：上下布局，用于有目录的文章页目录下方。
+interface Props {
+	variant?: "horizontal" | "vertical";
+}
+
+const { variant = "horizontal" } = Astro.props;
+
+const wrapClass =
+	variant === "vertical"
+		? "flex flex-col items-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 p-3 text-center dark:border-zinc-700 dark:bg-zinc-900"
+		: "mx-auto flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-zinc-300 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900";
+const textClass =
+	variant === "vertical" ? "flex w-full flex-col gap-0.5" : "min-w-0 flex-1";
+const btnClass =
+	variant === "vertical"
+		? "w-full rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-2"
+		: "shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white transition hover:bg-accent-2";
+---
+
+<section class={wrapClass}>
+	<img
+		src="/x2post.svg"
+		alt="X2Post"
+		class="h-8 w-8 shrink-0 rounded-md"
+		width="32"
+		height="32"
+	/>
+	<div class={textClass}>
+		<p class="text-sm font-semibold leading-tight text-global-text">X2Post 社区</p>
+		<p class="text-xs leading-tight text-zinc-500 dark:text-zinc-400">认真分享 · 友善讨论</p>
+	</div>
+	<a
+		href="https://x2post.com"
+		target="_blank"
+		rel="noopener noreferrer"
+		class={btnClass}
+	>
+		去社区看看
+	</a>
+</section>

@@ -1,4 +1,5 @@
 ---
+import X2PostPromo from "@/components/blog/X2PostPromo.astro";
 import PageLayout from "@/layouts/Base.astro";
 
 const meta = {
@@ -8,6 +9,9 @@ const meta = {
 ---
 
 <PageLayout meta={meta}>
+	<section class="mb-10">
+		<X2PostPromo />
+	</section>
 	<!-- <h1 class="title mb-12">About</h1> -->
 	<div class="prose prose-sm prose-cactus max-w-none">
 		<h1 class="title mb-6">About</h1>
@@ -46,6 +50,14 @@ const meta = {
 							href="https://subs.moatkon.com"
 							rel="noreferrer"
 							target="_blank">Subs</a
+						>
+					</li>
+					<li>
+						如果您想逛逛我做的内容社区,可以访问 <a
+							class="cactus-link inline-block"
+							href="https://x2post.com"
+							rel="noreferrer"
+							target="_blank">X2Post</a
 						>
 					</li>
 					<li>

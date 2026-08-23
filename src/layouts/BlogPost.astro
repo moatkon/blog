@@ -3,6 +3,7 @@ import { type CollectionEntry, render } from "astro:content";
 
 import Masthead from "@/components/blog/Masthead.astro";
 import TOC from "@/components/blog/TOC.astro";
+import X2PostPromo from "@/components/blog/X2PostPromo.astro";
 import RelatedPosts from "@/components/blog/RelatedPosts.astro";
 import PostNavigation from "@/components/blog/PostNavigation.astro";
 import WebMentions from "@/components/blog/webmentions/index.astro";
@@ -45,7 +46,10 @@ const { prevPost, nextPost } = getAdjacentPosts(post, allPosts);
 		{
 			!!headings.length ? (
 				<div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
-					<TOC headings={headings} />
+					<div class="flex flex-col gap-6 lg:sticky lg:top-12 lg:order-2 lg:-me-32 lg:basis-64">
+						<TOC headings={headings} />
+						<X2PostPromo variant="vertical" />
+					</div>
 					<div class="prose prose-sm prose-headings:font-semibold prose-headings:text-accent-2 prose-headings:before:absolute prose-headings:before:-ms-4 prose-headings:before:text-gray-600 prose-headings:hover:before:text-accent sm:prose-headings:before:content-['#'] sm:prose-th:before:content-none">
 						<slot />
 						<WebMentions />
