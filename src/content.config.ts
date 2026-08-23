@@ -1,5 +1,5 @@
 import { defineCollection, z } from "astro:content";
-import { glob } from "astro/loaders";
+import { glob, type Loader, type LoaderContext } from "astro/loaders";
 
 function removeDupsAndLowerCase(array: string[]) {
 	return [...new Set(array.map((str) => str.toLowerCase()))];
@@ -11,8 +11,30 @@ const baseSchema = z.object({
 	title: titleSchema,
 });
 
+/** Wrap the glob loader so draft posts are stripped from the collection in production builds.
+ *  This guarantees drafts are never routed, never emitted in the sitemap/RSS/OG-image, and never
+ *  reachable by a direct URL in production. In dev they stay available for preview.
+ */
+function globWithoutDrafts(options: Parameters<typeof glob>[0]): Loader {
+	const inner = glob(options);
+	return {
+		name: `${inner.name}-no-drafts`,
+		async load(context: LoaderContext) {
+			await inner.load(context);
+			if (import.meta.env.PROD) {
+				for (const id of context.store.keys()) {
+					const entry = context.store.get(id);
+					if (entry && entry.data.draft === true) {
+						context.store.delete(id);
+					}
+				}
+			}
+		},
+	};
+}
+
 const post = defineCollection({
-	loader: glob({ base: "./src/content/post", pattern: "**/*.{md,mdx}" }),
+	loader: globWithoutDrafts({ base: "./src/content/post", pattern: "**/*.{md,mdx}" }),
 	schema: ({ image }) =>
 		baseSchema.extend({
 			description: z.string(),
