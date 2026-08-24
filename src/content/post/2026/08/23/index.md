@@ -1,5 +1,5 @@
 ---
-title: 'X2Post'
+title: 'X2Post 社区上线'
 description: ''
 publishDate: '2026-08-24 01:52:14'
 draft: true
