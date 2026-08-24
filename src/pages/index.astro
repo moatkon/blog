@@ -12,15 +12,15 @@ import { collectionDateSort } from "@/utils/date";
 const MAX_POSTS = 10;
 const allPosts = await getAllPosts();
 const allPostsByDate = allPosts
-	.sort(collectionDateSort)
-	.slice(0, MAX_POSTS) as CollectionEntry<"post">[];
+  .sort(collectionDateSort)
+  .slice(0, MAX_POSTS) as CollectionEntry<"post">[];
 
 // Pinned Posts, set to a max of 3;
 const MAX_PINNED_POSTS = 3;
 const allPinnedPosts = allPosts
-	.filter((p) => p.data.pinned)
-	.sort(collectionDateSort)
-	.slice(0, MAX_PINNED_POSTS);
+  .filter((p) => p.data.pinned)
+  .sort(collectionDateSort)
+  .slice(0, MAX_PINNED_POSTS);
 
 // Notes 移除notes
 // const MAX_NOTES = 5;
@@ -29,65 +29,65 @@ const allPinnedPosts = allPosts
 ---
 
 <PageLayout meta={{ title: "Blog" }}>
-	<section class="mb-10">
-		<X2PostPromo />
-	</section>
-	<section>
-		<h1 class="title mb-6">Hello!</h1>
-		<p class="mb-4">I'm Moatkon,This is my blog.</p>
-		<!-- <p class="mb-4">这里主要是记录生活,会探索如何做生意,毕竟自己不是顶级打工人,靠着公司不是长久之计。</p> -->
-		<blockquote>- 2025-08-03</blockquote>
+  <section class="mb-10">
+    <X2PostPromo />
+  </section>
+  <section>
+    <h1 class="title mb-6">Hello!</h1>
+    <p class="mb-4">I'm Moatkon,This is my blog.</p>
+    <!-- <p class="mb-4">这里主要是记录生活,会探索如何做生意,毕竟自己不是顶级打工人,靠着公司不是长久之计。</p> -->
+    <blockquote>- 2025-08-03</blockquote>
 
-		<p class="title-min mt-6 mb-6">The way I roll:</p>
-		<ul class="list-inside list-disc" role="list">
-			<li>Stay healthy.</li>
-			<li>Enjoy Now.</li>
-			<li>If it’s not my business, let them.</li>
-			<li>Respect the rules, follow the rules.</li>
-			<li>Nobody likes unasked-for advice.</li>
-			<li>Working for money is hard, but living without it is harder.</li>
-			<li>Endure what others can’t. Do what others won’t.</li>
-			<li>It's just a job.</li>
-			<li>You can’t chase two rabbits at once — focus brings success.</li>
-		</ul>
+    <p class="title-min mt-6 mb-6">The way I roll:</p>
+    <ul class="list-inside list-disc" role="list">
+      <li>Stay healthy.</li>
+      <li>Enjoy Now.</li>
+      <li>If it’s not my business, let them.</li>
+      <li>Respect the rules, follow the rules.</li>
+      <li>Nobody likes unasked-for advice.</li>
+      <li>Working for money is hard, but living without it is harder.</li>
+      <li>Endure what others can’t. Do what others won’t.</li>
+      <li>It's just a job.</li>
+      <li>You can’t chase two rabbits at once — focus brings success.</li>
+    </ul>
 
-		<!-- <SocialList />  -->
-	</section>
-	{
-		allPinnedPosts.length > 0 && (
-			<section class="mt-16">
-				<h2 class="title text-accent mb-6 text-xl">Pinned Posts</h2>
-				<ul class="space-y-4" role="list">
-					{allPinnedPosts.map((p) => (
-						<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
-							<PostPreview post={p} />
-						</li>
-					))}
-				</ul>
-			</section>
-		)
-	}
-	<section class="mt-16">
-		<h2 class="title text-accent mb-6 text-xl">
-			<a href="/posts/" class="title text-accent text-xl">Recent Posts</a>
-		</h2>
-		<ul class="space-y-4" role="list">
-			{
-				allPostsByDate.map((p) => (
-					<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
-						<PostPreview post={p} />
-					</li>
-				))
-			}
+    <!-- <SocialList />  -->
+  </section>
+  {
+    allPinnedPosts.length > 0 && (
+      <section class="mt-16">
+        <h2 class="title text-accent mb-6 text-xl">Pinned Posts</h2>
+        <ul class="space-y-4" role="list">
+          {allPinnedPosts.map((p) => (
+            <li class="grid gap-1 sm:grid-cols-[auto_1fr]">
+              <PostPreview post={p} />
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+  <section class="mt-16">
+    <h2 class="title text-accent mb-6 text-xl">
+      <a href="/posts/" class="title text-accent text-xl">Recent Posts</a>
+    </h2>
+    <ul class="space-y-4" role="list">
+      {
+        allPostsByDate.map((p) => (
+          <li class="grid gap-1 sm:grid-cols-[auto_1fr]">
+            <PostPreview post={p} />
+          </li>
+        ))
+      }
 
-			<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
-				<a class="min-w-30 font-semibold text-accent" href="/posts">
-					→ All Posts
-				</a>
-			</li>
-		</ul>
-	</section>
-	<!-- {
+      <li class="grid gap-1 sm:grid-cols-[auto_1fr]">
+        <a class="min-w-30 font-semibold text-accent" href="/posts">
+          → All Posts
+        </a>
+      </li>
+    </ul>
+  </section>
+  <!-- {
 		latestNotes.length > 0 && (
 			<section class="mt-16">
 				<h2 class="title text-accent mb-6 text-xl">

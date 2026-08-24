@@ -1,14 +1,17 @@
 ---
 import StatsPanel from "@/components/stats/StatsPanel.astro";
 import PageLayout from "@/layouts/Base.astro";
-
+import X2PostPromo from "@/components/blog/X2PostPromo.astro";
 const meta = {
-	title: "Blog Statistics",
-	description:
-		"Comprehensive statistics and analytics for this blog, including post counts, reading time, popular tags, and writing activity over time.",
+  title: "Blog Statistics",
+  description:
+    "Comprehensive statistics and analytics for this blog, including post counts, reading time, popular tags, and writing activity over time.",
 };
 ---
 
 <PageLayout meta={meta}>
-	<StatsPanel />
+  <section class="mb-10">
+    <X2PostPromo />
+  </section>
+  <StatsPanel />
 </PageLayout>
