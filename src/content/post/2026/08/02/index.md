@@ -2,11 +2,11 @@
 title: '小宝对妈妈说: 我保护你'
 description: ''
 publishDate: '2026-08-02 01:18:14'
-draft: true
+draft: false
 tags:
   - 记录
 pinned: false
-updatedDate: '2026-08-02 01:18:14'
+updatedDate: '2026-08-25 00:37:21'
 ---
 
 昨天(周六)上午下了大雨,所以出门稍微晚点。
