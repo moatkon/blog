@@ -10,7 +10,7 @@ const { variant = "horizontal" } = Astro.props;
 
 const wrapClass =
 	variant === "vertical"
-		? "flex flex-col items-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 p-3 text-center dark:border-zinc-700 dark:bg-zinc-900"
+		? "flex w-full flex-col items-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 p-3 text-center dark:border-zinc-700 dark:bg-zinc-900"
 		: "mx-auto flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-zinc-300 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900";
 const textClass =
 	variant === "vertical" ? "flex w-full flex-col gap-0.5" : "min-w-0 flex-1";
