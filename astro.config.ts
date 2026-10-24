@@ -28,13 +28,16 @@ export default defineConfig({
 	integrations: [
 		expressiveCode(expressiveCodeOptions),
 		icon(),
-		sitemap(),
+		sitemap({
+			// Notes are disabled; old note URLs are redirected to posts.
+			filter: (page) => !page.includes("/notes/"),
+		}),
 		mdx(),
 		robotsTxt(),
 		webmanifest({
 			// See: https://github.com/alextim/astro-lib/blob/main/packages/astro-webmanifest/README.md
 			name: siteConfig.title,
-			short_name: "Astro_Cactus", // optional
+			short_name: "Moatkon", // optional
 			description: siteConfig.description,
 			lang: siteConfig.lang,
 			icon: "public/moatkon-icon.png", // the source for generating favicon & icons
@@ -57,7 +60,7 @@ export default defineConfig({
 			],
 			start_url: "/",
 			background_color: "#1d1f21",
-			theme_color: "#2bbc8a",
+			theme_color: "#00769b",
 			display: "standalone",
 			config: {
 				insertFaviconLinks: false,
@@ -90,7 +93,9 @@ export default defineConfig({
 		optimizeDeps: {
 			exclude: ["@resvg/resvg-js"],
 		},
-		plugins: [tailwind(), rawFonts([".ttf", ".woff"])],
+		// rawFonts returns the root Vite plugin type while Astro resolves its own nested Vite copy.
+		// biome-ignore lint/suspicious/noExplicitAny: duplicated Vite plugin types cannot be reconciled here
+		plugins: [tailwind(), rawFonts([".ttf", ".woff"]) as any],
 	},
 	env: {
 		schema: {

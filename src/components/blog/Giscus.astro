@@ -38,9 +38,10 @@ import "@/styles/giscus.css";
 
 <section class="mt-16">
 	<hr class="border-dashed mb-8" />
-	<h6 class="title mb-6 text-xl before:hidden">评论</h6>
+	<h2 class="title mb-6 text-xl before:hidden">评论</h2>
 	<script
 		id="giscus-script"
+		is:inline
 		src="https://giscus.app/client.js"
 		data-repo={repo}
 		data-repo-id={repoId}
@@ -81,7 +82,6 @@ import "@/styles/giscus.css";
 				const currentTheme = getCurrentTheme();
 				const giscusTheme = currentTheme === "dark" ? "dark" : "light";
 				giscusScript.setAttribute("data-theme", giscusTheme);
-				console.log("Set initial Giscus theme to:", giscusTheme);
 				return true;
 			}
 			return false;

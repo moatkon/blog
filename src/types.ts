@@ -27,22 +27,6 @@ export interface GiscusConfig {
 	loading?: string;
 }
 
-/** Giscus 评论系统配置 */
-export interface GiscusConfig {
-	repo: string;
-	repoId: string;
-	category: string;
-	categoryId: string;
-	mapping?: string;
-	strict?: string;
-	reactionsEnabled?: string;
-	emitMetadata?: string;
-	inputPosition?: string;
-	theme?: string;
-	lang?: string;
-	loading?: string;
-}
-
 export interface PaginationLink {
 	srLabel?: string;
 	text?: string;
@@ -51,9 +35,11 @@ export interface PaginationLink {
 
 export interface SiteMeta {
 	articleDate?: string | undefined;
-	description?: string;
+	description?: string | undefined;
+	noindex?: boolean | undefined;
 	ogImage?: string | undefined;
 	title: string;
+	updatedDate?: string | undefined;
 }
 
 /** Webmentions */

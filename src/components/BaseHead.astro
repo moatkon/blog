@@ -6,37 +6,95 @@ import "@/styles/global.css";
 
 type Props = SiteMeta;
 
-const { articleDate, description, ogImage, title } = Astro.props;
+const {
+	articleDate,
+	description,
+	noindex = false,
+	ogImage,
+	title,
+	updatedDate,
+} = Astro.props;
 
 const titleSeparator = "•";
-const siteTitle = `${title} ${titleSeparator} ${siteConfig.title}`;
+const siteTitle =
+	title === siteConfig.title
+		? title
+		: `${title} ${titleSeparator} ${siteConfig.title}`;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const socialImageURL = new URL(
-	ogImage ? ogImage : "/social-card.png",
+	ogImage ? ogImage : "/og-image/site.png",
 	Astro.url,
 ).href;
+const publisherLogoURL = new URL("/moatkon-icon.png", Astro.site).href;
+const fontStylesheetURL =
+	"https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap";
+const structuredData = articleDate
+	? JSON.stringify({
+			"@context": "https://schema.org",
+			"@type": "BlogPosting",
+			headline: title,
+			description,
+			image: socialImageURL,
+			datePublished: articleDate,
+			dateModified: updatedDate ?? articleDate,
+			inLanguage: siteConfig.lang,
+			author: { "@type": "Person", name: siteConfig.author },
+			publisher: {
+				"@type": "Organization",
+				name: siteConfig.title,
+				logo: { "@type": "ImageObject", url: publisherLogoURL },
+			},
+			mainEntityOfPage: { "@type": "WebPage", "@id": canonicalURL.href },
+		}).replace(/</g, "\\u003c")
+	: null;
 ---
 
 <meta charset="utf-8" />
 <meta content="width=device-width, initial-scale=1.0" name="viewport" />
 <title>{siteTitle}</title>
+<meta
+	content="#fafafa"
+	media="(prefers-color-scheme: light)"
+	name="theme-color"
+/>
+<meta
+	content="#1d1f21"
+	media="(prefers-color-scheme: dark)"
+	name="theme-color"
+/>
+{noindex && <meta content="noindex, nofollow" name="robots" />}
 
-{/* DM Sans Variable Font */}
+{/* DM Sans Variable Font — load asynchronously so a slow font CDN never blocks first paint */}
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preload" as="style" href={fontStylesheetURL} />
 <link
-	href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+	href={fontStylesheetURL}
+	media="print"
+	onload="this.media='all'"
 	rel="stylesheet"
 />
+<noscript>
+	<link href={fontStylesheetURL} rel="stylesheet" />
+</noscript>
 
 {/* Icons */}
 <link href="/moatkon-icon.png" rel="icon" type="image/png" />
+<link
+	href="/apple-touch-icon.png"
+	rel="apple-touch-icon"
+	sizes="180x180"
+/>
 {
 	import.meta.env.PROD && (
 		<>
-			{/* Favicon & Apple Icon */}
-			<link rel="icon" href="/favicon-32x32.png" type="image/png" />
-			{/* <link href="/icons/apple-touch-icon.png" rel="apple-touch-icon" /> */}
+			{/* Favicon */}
+			<link
+				rel="icon"
+				href="/favicon-32x32.png"
+				sizes="32x32"
+				type="image/png"
+			/>
 			{/* Manifest */}
 			<link href="/manifest.webmanifest" rel="manifest" />
 		</>
@@ -59,6 +117,8 @@ const socialImageURL = new URL(
 <meta content={siteConfig.title} property="og:site_name" />
 <meta content={siteConfig.ogLocale} property="og:locale" />
 <meta content={socialImageURL} property="og:image" />
+<meta content={title} property="og:image:alt" />
+<meta content="image/png" property="og:image:type" />
 <meta content="1200" property="og:image:width" />
 <meta content="630" property="og:image:height" />
 {
@@ -66,28 +126,26 @@ const socialImageURL = new URL(
 		<>
 			<meta content={siteConfig.author} property="article:author" />
 			<meta content={articleDate} property="article:published_time" />
+			{updatedDate && (
+				<meta content={updatedDate} property="article:modified_time" />
+			)}
 		</>
 	)
 }
 
 {/* Twitter */}
-<meta content="summary_large_image" property="twitter:card" />
-<meta content={canonicalURL} property="twitter:url" />
-<meta content={title} property="twitter:title" />
-<meta content={description} property="twitter:description" />
-<meta content={socialImageURL} property="twitter:image" />
+<meta content="summary_large_image" name="twitter:card" />
+<meta content={canonicalURL} name="twitter:url" />
+<meta content={title} name="twitter:title" />
+<meta content={description} name="twitter:description" />
+<meta content={socialImageURL} name="twitter:image" />
+<meta content={title} name="twitter:image:alt" />
 
 {/* Sitemap */}
 <link href="/sitemap-index.xml" rel="sitemap" />
 
 {/* RSS auto-discovery */}
 <link href="/rss.xml" title="Blog" rel="alternate" type="application/rss+xml" />
-<link
-	href="/notes/rss.xml"
-	title="Notes"
-	rel="alternate"
-	type="application/rss+xml"
-/>
 
 {/* Webmentions */}
 {
@@ -102,3 +160,11 @@ const socialImageURL = new URL(
 }
 
 <meta content={Astro.generator} name="generator" />
+{
+	structuredData && (
+		<script
+			type="application/ld+json"
+			set:html={structuredData}
+		/>
+	)
+}

@@ -1,32 +1,26 @@
-import { getCollection, render } from "astro:content";
 import rss from "@astrojs/rss";
+import MarkdownIt from "markdown-it";
+import { getAllNotes } from "@/data/post";
 import { siteConfig } from "@/site.config";
 
+const parser = new MarkdownIt();
+
 export const GET = async () => {
-	const notes = await getCollection("note");
+	const notes = (await getAllNotes()).sort(
+		(a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime(),
+	);
 
 	return rss({
-		title: siteConfig.title,
+		title: `${siteConfig.title} - Notes`,
 		description: siteConfig.description,
 		site: import.meta.env.SITE,
-		items: await Promise.all(notes.map(async (note) => {
-			// Try to render the content to HTML
-			let htmlContent = '';
-			try {
-				const result = await render(note);
-				htmlContent = result?.code || note.body || '';
-			} catch (error) {
-				console.error(`Error rendering note ${note.id}:`, error);
-				htmlContent = note.body || '';
-			}
-			
-			return {
-				title: note.data.title,
-				description: note.data.description || '', // Add description if available
-				pubDate: note.data.publishDate,
-				link: `notes/${note.id}/`,
-				content: htmlContent, // Full HTML content
-			};
+		customData: `<language>${siteConfig.lang}</language>`,
+		items: notes.map((note) => ({
+			title: note.data.title,
+			description: note.data.description || "",
+			pubDate: note.data.publishDate,
+			link: `notes/${note.id}/`,
+			content: parser.render(note.body || ""),
 		})),
 	});
 };

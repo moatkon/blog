@@ -11,10 +11,10 @@ const monthlyStats = await getMonthlyStats();
 // Format numbers for display
 function formatNumber(num: number): string {
 	if (num >= 1000000) {
-		return (num / 1000000).toFixed(1) + "M";
+		return `${(num / 1000000).toFixed(1)}M`;
 	}
 	if (num >= 1000) {
-		return (num / 1000).toFixed(1) + "K";
+		return `${(num / 1000).toFixed(1)}K`;
 	}
 	return num.toString();
 }
@@ -35,14 +35,6 @@ const writingPeriodDays =
 			)
 		: null;
 
-// Calculate notes writing period
-const notesWritingPeriodDays =
-	stats.firstNoteDate && stats.lastNoteDate
-		? Math.floor(
-				(stats.lastNoteDate.getTime() - stats.firstNoteDate.getTime()) /
-					(1000 * 60 * 60 * 24),
-			)
-		: null;
 ---
 
 <div class="space-y-8">

@@ -6,12 +6,15 @@ import MarkdownIt from "markdown-it";
 const parser = new MarkdownIt();
 
 export const GET = async () => {
-	const posts = await getAllPosts();
+	const posts = (await getAllPosts()).sort(
+		(a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime(),
+	);
 
 	return rss({
 		title: siteConfig.title,
 		description: siteConfig.description,
 		site: import.meta.env.SITE,
+		customData: `<language>${siteConfig.lang}</language>`,
 		items: posts.map((post) => ({
 			title: post.data.title,
 			description: post.data.description,

@@ -1,4 +1,4 @@
-import { type CollectionEntry, getCollection, render } from "astro:content";
+import { type CollectionEntry, getCollection } from "astro:content";
 
 /** filter out draft posts based on the environment */
 export async function getAllPosts(): Promise<CollectionEntry<"post">[]> {
@@ -7,11 +7,15 @@ export async function getAllPosts(): Promise<CollectionEntry<"post">[]> {
 	});
 }
 
-/** Get all notes (filter out drafts) */
+const noteFiles = import.meta.glob("/src/content/note/**/*.{md,mdx}");
+
+/** Get all notes (filter out drafts). Skip the collection entirely while it is empty. */
 export async function getAllNotes(): Promise<CollectionEntry<"note">[]> {
+	if (Object.keys(noteFiles).length === 0) {
+		return [];
+	}
 	return await getCollection("note", ({ data }) => {
-		// Filter out drafts if the note has a draft field
-		return import.meta.env.PROD ? !(data as any).draft : true;
+		return import.meta.env.PROD ? !data.draft : true;
 	});
 }
 
@@ -73,7 +77,9 @@ export function getPostsCountByYear(posts: CollectionEntry<"post">[]): [string, 
 		return acc;
 	}, {});
 
-	return Object.entries(yearCounts).sort((a, b) => parseInt(b[0]) - parseInt(a[0]));
+	return Object.entries(yearCounts).sort(
+		(a, b) => Number.parseInt(b[0], 10) - Number.parseInt(a[0], 10),
+	);
 }
 
 /** returns all unique years from posts
@@ -81,7 +87,9 @@ export function getPostsCountByYear(posts: CollectionEntry<"post">[]): [string, 
  *  */
 export function getUniqueYears(posts: CollectionEntry<"post">[]): string[] {
 	const years = posts.map((post) => post.data.publishDate.getFullYear().toString());
-	return [...new Set(years)].sort((a, b) => parseInt(b) - parseInt(a));
+	return [...new Set(years)].sort(
+		(a, b) => Number.parseInt(b, 10) - Number.parseInt(a, 10),
+	);
 }
 
 /** Calculate similarity score between two posts based on shared tags
@@ -111,20 +119,21 @@ export function getAdjacentPosts(
 	currentPost: CollectionEntry<"post">,
 	allPosts: CollectionEntry<"post">[]
 ): { prevPost: CollectionEntry<"post"> | null; nextPost: CollectionEntry<"post"> | null } {
-	// Sort posts by publish date (newest first)
-	const sortedPosts = allPosts.sort((a, b) =>
-		b.data.publishDate.getTime() - a.data.publishDate.getTime()
+	// Sort a copy by publish date (newest first) so callers' arrays are not mutated.
+	const sortedPosts = [...allPosts].sort(
+		(a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime(),
 	);
 
-	const currentIndex = sortedPosts.findIndex(post => post.id === currentPost.id);
+	const currentIndex = sortedPosts.findIndex((post) => post.id === currentPost.id);
 
 	if (currentIndex === -1) {
 		return { prevPost: null, nextPost: null };
 	}
 
 	// Previous post is newer (index - 1), next post is older (index + 1)
-	const prevPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
-	const nextPost = currentIndex < sortedPosts.length - 1 ? sortedPosts[currentIndex + 1] : null;
+	const prevPost = currentIndex > 0 ? (sortedPosts[currentIndex - 1] ?? null) : null;
+	const nextPost =
+		currentIndex < sortedPosts.length - 1 ? (sortedPosts[currentIndex + 1] ?? null) : null;
 
 	return { prevPost, nextPost };
 }
@@ -135,7 +144,7 @@ export function getAdjacentPosts(
 export function getRelatedPosts(
 	currentPost: CollectionEntry<"post">,
 	allPosts: CollectionEntry<"post">[],
-	maxResults: number = 3
+	maxResults = 3
 ): CollectionEntry<"post">[] {
 	// Filter out the current post and posts without tags
 	const candidatePosts = allPosts.filter(post =>
@@ -224,8 +233,8 @@ export async function getBlogStats(): Promise<BlogStats> {
 	const posts = allPosts.filter(({ data }) => !data.draft);
 
 	// Get all notes but filter out drafts for statistics (regardless of environment)
-	const allNotes = await getCollection("note");
-	const notes = allNotes.filter(({ data }) => !(data as any).draft);
+	const allNotes = await getAllNotes();
+	const notes = allNotes.filter(({ data }) => !data.draft);
 
 	if (posts.length === 0 && notes.length === 0) {
 		return {
@@ -294,8 +303,8 @@ export async function getBlogStats(): Promise<BlogStats> {
 	const totalPosts = posts.length;
 	const totalWords = postsWithStats.reduce((sum, { words }) => sum + words, 0);
 	const totalReadingTime = postsWithStats.reduce((sum, { readingTime }) => sum + readingTime, 0);
-	const averageWordsPerPost = totalWords / totalPosts;
-	const averageReadingTimePerPost = totalReadingTime / totalPosts;
+	const averageWordsPerPost = totalPosts > 0 ? totalWords / totalPosts : 0;
+	const averageReadingTimePerPost = totalPosts > 0 ? totalReadingTime / totalPosts : 0;
 
 	// Date-based statistics
 	const sortedPosts = posts.sort((a, b) => a.data.publishDate.getTime() - b.data.publishDate.getTime());
@@ -468,10 +477,12 @@ export async function getMonthlyStats(): Promise<MonthlyStats[]> {
 		const month = date.getMonth();
 		const key = `${year}-${month}`;
 
-		if (!monthlyData.has(key)) {
-			monthlyData.set(key, { year, month, count: 0 });
+		const entry = monthlyData.get(key);
+		if (entry) {
+			entry.count++;
+		} else {
+			monthlyData.set(key, { year, month, count: 1 });
 		}
-		monthlyData.get(key)!.count++;
 	});
 
 	const monthNames = [

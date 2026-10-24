@@ -3,9 +3,11 @@
 // Shows reading progress at the top of the page
 ---
 
-<div id="reading-progress-container" class="reading-progress-container">
-	<div id="reading-progress-bar" class="reading-progress-bar"></div>
-</div>
+<reading-progress aria-hidden="true">
+	<div id="reading-progress-container" class="reading-progress-container">
+		<div id="reading-progress-bar" class="reading-progress-bar"></div>
+	</div>
+</reading-progress>
 
 <style>
 	.reading-progress-container {
@@ -16,6 +18,7 @@
 		height: 3px;
 		background-color: rgba(0, 0, 0, 0.05);
 		z-index: 1000;
+		pointer-events: none;
 		opacity: 0;
 		transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		backdrop-filter: blur(8px);
@@ -187,5 +190,3 @@
 	// Register the custom element
 	customElements.define("reading-progress", ReadingProgress);
 </script>
-
-<reading-progress></reading-progress>

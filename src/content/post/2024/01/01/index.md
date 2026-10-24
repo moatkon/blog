@@ -21,7 +21,7 @@ tags: ["记录"]
 
 ## 目前自己有哪些资源?
 - 年轻。年龄28岁 <small>对,在国内互联网行业这是一个优势</small> ,正年轻。我可以花几年的时间,专注于在一件事情上发力!
-- 有自己的播客[《程序员的生活记录》](/podcast)。还是要阶段性更新,不能长时间不更新!!!
+- 有自己的播客《程序员的生活记录》。还是要阶段性更新,不能长时间不更新!!!
 - 构建了自己的护城河网站 [https://moatkon.com](https://moatkon.com),可以基于这个网站来慢慢增强自己的技术实力
 - 有自己的开源项目 [upupor](https://github.com/moatkon/upupor) <small>这个项目着重发力点在SEO。集成了Google Analytics、Google Search Console等Google产品。使用了Docker部署在阿里云上。项目代码随着个人经验的增加,一直在重构,因为我期望upupor的代码可以越来越好。</small>
 - 还有您看到的这个网站 https://blog.moatkon.com ,可以阶段性的复盘,反思。

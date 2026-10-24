@@ -1,10 +1,9 @@
 ---
-import { type CollectionEntry, getCollection } from "astro:content";
-// import SocialList from "@/components/SocialList.astro";
+import type { CollectionEntry } from "astro:content";
 import PostPreview from "@/components/blog/PostPreview.astro";
 import X2PostPromo from "@/components/blog/X2PostPromo.astro";
-import Note from "@/components/note/Note.astro";
 import { getAllPosts } from "@/data/post";
+import { siteConfig } from "@/site.config";
 import PageLayout from "@/layouts/Base.astro";
 import { collectionDateSort } from "@/utils/date";
 
@@ -21,22 +20,16 @@ const allPinnedPosts = allPosts
   .filter((p) => p.data.pinned)
   .sort(collectionDateSort)
   .slice(0, MAX_PINNED_POSTS);
-
-// Notes 移除notes
-// const MAX_NOTES = 5;
-// const allNotes = await getCollection("note");
-// const latestNotes = allNotes.sort(collectionDateSort).slice(0, MAX_NOTES);
 ---
 
-<PageLayout meta={{ title: "Blog" }}>
+<PageLayout meta={{ title: siteConfig.title }}>
   <section class="mb-12">
     <X2PostPromo variant="hero" />
   </section>
   <section>
     <h1 class="title mb-6">Hello!</h1>
-    <p class="mb-4">I'm Moatkon,This is my blog.</p>
-    <!-- <p class="mb-4">这里主要是记录生活,会探索如何做生意,毕竟自己不是顶级打工人,靠着公司不是长久之计。</p> -->
-    <blockquote>- 2025-08-03</blockquote>
+    <p class="mb-4">I'm Moatkon. This is my blog.</p>
+    <p class="mb-6 text-sm text-zinc-500 dark:text-zinc-400">— 2025-08-03</p>
 
     <p class="title-min mt-6 mb-6">The way I roll:</p>
     <ul class="list-inside list-disc" role="list">
@@ -51,7 +44,6 @@ const allPinnedPosts = allPosts
       <li>You can’t chase two rabbits at once — focus brings success.</li>
     </ul>
 
-    <!-- <SocialList />  -->
   </section>
   {
     allPinnedPosts.length > 0 && (
@@ -87,20 +79,4 @@ const allPinnedPosts = allPosts
       </li>
     </ul>
   </section>
-  <!-- {
-		latestNotes.length > 0 && (
-			<section class="mt-16">
-				<h2 class="title text-accent mb-6 text-xl">
-					<a href="/notes/">Notes</a>
-				</h2>
-				<ul class="space-y-6" role="list">
-					{latestNotes.map((note) => (
-						<li>
-							<Note note={note} as="h3" isPreview />
-						</li>
-					))}
-				</ul>
-			</section>
-		)
-	} -->
 </PageLayout>

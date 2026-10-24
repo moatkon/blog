@@ -12,7 +12,7 @@ const { headings } = Astro.props;
 const toc = generateToc(headings);
 ---
 
-<details open>
+<details class="toc">
 	<summary class="title hover:marker:text-accent cursor-pointer text-lg">目录</summary>
 	<nav class="ms-4">
 		<ol class="mt-4">
@@ -20,3 +20,10 @@ const toc = generateToc(headings);
 		</ol>
 	</nav>
 </details>
+
+<script is:inline>
+	// Keep the TOC expanded on desktop, collapsed on mobile so it does not push
+	// article content below a long list of headings.
+	const toc = document.querySelector("details.toc");
+	if (toc) toc.open = window.matchMedia("(min-width: 1024px)").matches;
+</script>

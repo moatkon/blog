@@ -4,13 +4,12 @@ import { type CollectionEntry, render } from "astro:content";
 import Masthead from "@/components/blog/Masthead.astro";
 import TOC from "@/components/blog/TOC.astro";
 import X2PostPromo from "@/components/blog/X2PostPromo.astro";
-import RelatedPosts from "@/components/blog/RelatedPosts.astro";
 import PostNavigation from "@/components/blog/PostNavigation.astro";
 import WebMentions from "@/components/blog/webmentions/index.astro";
 import Giscus from "@/components/blog/Giscus.astro";
 import ReadingProgress from "@/components/ReadingProgress.astro";
 import { getAllPosts, getAdjacentPosts } from "@/data/post";
-import { giscusConfig } from "@/site.config";
+import { giscusConfig, siteConfig } from "@/site.config";
 
 import BaseLayout from "./Base.astro";
 
@@ -21,7 +20,10 @@ interface Props {
 const { post } = Astro.props;
 const { ogImage, title, description, updatedDate, publishDate } = post.data;
 const socialImage = ogImage ?? `/og-image/${post.id}.png`;
-const articleDate = updatedDate?.toISOString() ?? publishDate.toISOString();
+const publishedDate = publishDate.toISOString();
+const modifiedDate = updatedDate?.toISOString();
+const metaDescription =
+	description?.trim() || `${title} — ${siteConfig.description}`;
 const { headings, remarkPluginFrontmatter } = await render(post);
 const readingTime: string = remarkPluginFrontmatter.readingTime;
 
@@ -32,10 +34,11 @@ const { prevPost, nextPost } = getAdjacentPosts(post, allPosts);
 
 <BaseLayout
 	meta={{
-		articleDate,
-		description,
+		articleDate: publishedDate,
+		description: metaDescription,
 		ogImage: socialImage,
 		title,
+		updatedDate: modifiedDate,
 	}}
 >
 	<ReadingProgress />
@@ -67,7 +70,6 @@ const { prevPost, nextPost } = getAdjacentPosts(post, allPosts);
 	<div class="mt-12">
 		<X2PostPromo variant="banner" />
 	</div>
-	<!-- <RelatedPosts currentPost={post} /> -->
 	<Giscus {...giscusConfig} />
 	<button
 		class="hover:border-link fixed end-4 bottom-8 z-90 flex h-10 w-10 translate-y-28 cursor-pointer items-center justify-center rounded-full border-2 border-transparent bg-zinc-200 text-3xl opacity-0 transition-all transition-discrete duration-300 data-[show=true]:translate-y-0 data-[show=true]:opacity-100 sm:end-8 sm:h-12 sm:w-12 dark:bg-zinc-700"

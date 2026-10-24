@@ -29,3 +29,5 @@
 
 ### Build
 指定时区构建: TZ=Asia/Shanghai npm run build
+
+> OG 分享图生成时会自动使用构建机上的中文字体（macOS 的 Arial Unicode，或 Linux 的 Noto Sans CJK .ttf/.otf 文件）。如果构建环境没有可读取的中文字体文件，中文标题会缺失；可在 `src/utils/og-image.ts` 的候选路径中补充部署机的字体位置。

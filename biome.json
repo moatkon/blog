@@ -9,7 +9,10 @@
 			"!**/.vercel",
 			"!**/.netlify",
 			"!**/.vscode",
-			"!**/.astro"
+			"!**/.astro",
+			"!cms",
+			"!public",
+			"!src/styles/global.css"
 		]
 	},
 	"formatter": {
@@ -58,7 +61,18 @@
 		}
 	},
 	"html": { "formatter": { "selfCloseVoidElements": "always" } },
+	"css": { "parser": { "tailwindDirectives": true } },
 	"overrides": [
+		{
+			"includes": ["src/styles/giscus.css"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noImportantStyles": "off"
+					}
+				}
+			}
+		},
 		{
 			"includes": ["**/*.astro"],
 			"linter": {

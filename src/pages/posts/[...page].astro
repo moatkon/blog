@@ -18,28 +18,23 @@ import { Icon } from "astro-icon/components";
 export const getStaticPaths = (async ({ paginate }) => {
   const MAX_POSTS_PER_PAGE = 20;
   const MAX_TAGS = 7;
-  const MAX_PINNED_POSTS = 3;
   const allPosts = await getAllPosts();
   const allPostsByDate = allPosts.sort(collectionDateSort);
   const uniqueTags = getUniqueTags(allPosts).slice(0, MAX_TAGS);
-  const pinnedPosts = allPostsByDate
-    .filter((p) => p.data.pinned)
-    .slice(0, MAX_PINNED_POSTS);
   const yearCounts = getPostsCountByYear(allPosts);
   return paginate(allPostsByDate, {
     pageSize: MAX_POSTS_PER_PAGE,
-    props: { uniqueTags, pinnedPosts, yearCounts },
+    props: { uniqueTags, yearCounts },
   });
 }) satisfies GetStaticPaths;
 
 interface Props {
   page: Page<CollectionEntry<"post">>;
   uniqueTags: string[];
-  pinnedPosts: CollectionEntry<"post">[];
   yearCounts: [string, number][];
 }
 
-const { page, uniqueTags, pinnedPosts, yearCounts } = Astro.props;
+const { page, uniqueTags, yearCounts } = Astro.props;
 
 const meta = {
   description: "Read my collection of posts and the things that interest me",
@@ -83,20 +78,6 @@ const descYearKeys = Object.keys(groupedByYear).sort((a, b) => +b - +a);
   </div>
   <div class="grid sm:grid-cols-[3fr_1fr] sm:gap-x-8 sm:gap-y-16">
     <div>
-      <!-- {
-				pinnedPosts.length > 0 && (
-					<section class="mb-16">
-						<h2 class="title mb-6 text-xl">Pinned Posts</h2>
-						<ul class="space-y-4" role="list">
-							{pinnedPosts.map((p) => (
-								<li class="grid gap-1 sm:grid-cols-[auto_1fr]">
-									<PostPreview post={p} />
-								</li>
-							))}
-						</ul>
-					</section>
-				)
-			} -->
       {
         descYearKeys.map((yearKey) => (
           <section class="mb-16">
