@@ -2,6 +2,7 @@
 import { render } from "astro:content";
 import Pagination from "@/components/Paginator.astro";
 import PostPreview from "@/components/blog/PostPreview.astro";
+import X2PostPromo from "@/components/blog/X2PostPromo.astro";
 import { getAllPosts, getTagMeta, getUniqueTags } from "@/data/post";
 import PageLayout from "@/layouts/Base.astro";
 import { collectionDateSort } from "@/utils/date";
@@ -55,6 +56,9 @@ const paginationProps = {
 ---
 
 <PageLayout meta={meta}>
+	<section class="mb-10">
+		<X2PostPromo />
+	</section>
 	<nav class="mb-8" aria-label="Breadcrumbs">
 		<ul class="flex items-center">
 			<li class="flex items-center">

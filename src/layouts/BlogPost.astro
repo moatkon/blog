@@ -47,8 +47,8 @@ const { prevPost, nextPost } = getAdjacentPosts(post, allPosts);
 			!!headings.length ? (
 				<div class="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
 					<div class="flex flex-col gap-6 lg:sticky lg:top-12 lg:order-2 lg:-me-32 lg:basis-64">
-						<TOC headings={headings} />
 						<X2PostPromo variant="vertical" />
+						<TOC headings={headings} />
 					</div>
 					<div class="prose prose-sm prose-headings:font-semibold prose-headings:text-accent-2 prose-headings:before:absolute prose-headings:before:-ms-4 prose-headings:before:text-gray-600 prose-headings:hover:before:text-accent sm:prose-headings:before:content-['#'] sm:prose-th:before:content-none">
 						<slot />
@@ -64,6 +64,9 @@ const { prevPost, nextPost } = getAdjacentPosts(post, allPosts);
 		}
 	</article>
 	<PostNavigation prevPost={prevPost} nextPost={nextPost} />
+	<div class="mt-12">
+		<X2PostPromo variant="banner" />
+	</div>
 	<!-- <RelatedPosts currentPost={post} /> -->
 	<Giscus {...giscusConfig} />
 	<button
