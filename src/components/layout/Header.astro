@@ -118,6 +118,28 @@ import { siteConfig } from "../../site.config";
 	</mobile-button>
 </header>
 
+<style>
+	/* 移动端菜单：淡入 + 轻微下移，替代原来的 display 硬切 */
+	@media (max-width: 639.98px) {
+		#navigation-menu {
+			display: flex;
+			opacity: 0;
+			visibility: hidden;
+			translate: 0 -6px;
+			transition:
+				opacity 0.2s var(--ease-out-cubic),
+				translate 0.2s var(--ease-out-cubic),
+				visibility 0.2s;
+		}
+
+		.menu-open #navigation-menu {
+			opacity: 1;
+			visibility: visible;
+			translate: 0 0;
+		}
+	}
+</style>
+
 <script>
 	class MobileNavBtn extends HTMLElement {
 		#menuOpen = false;

@@ -15,12 +15,12 @@
 		top: 0;
 		left: 0;
 		width: 100%;
-		height: 3px;
+		height: 4px;
 		background-color: rgba(0, 0, 0, 0.05);
 		z-index: 1000;
 		pointer-events: none;
 		opacity: 0;
-		transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+		transition: opacity 0.3s var(--ease-out-cubic);
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
 	}
@@ -29,12 +29,19 @@
 		opacity: 1;
 	}
 
+	/*
+	 * Motion Prompt #079 · MIT License (c) 2026 Shohei Ohtaki
+	 * https://showheyohtaki.github.io/motion-prompt/#079
+	 * 填充宽度直接跟随滚动比例，不做时间过渡，避免拖影
+	 */
 	.reading-progress-bar {
 		height: 100%;
-		width: 0%;
-		background: oklch(65% 0.15 205);
-		transition: width 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+		width: 100%;
+		background: var(--color-accent);
+		transform: scaleX(0);
+		transform-origin: 0 50%;
 		border-radius: 0 2px 2px 0;
+		will-change: transform;
 	}
 
 	/* Dark mode support */
@@ -45,7 +52,7 @@
 	/* Responsive adjustments */
 	@media (max-width: 640px) {
 		.reading-progress-container {
-			height: 2px;
+			height: 3px;
 		}
 	}
 
@@ -53,10 +60,6 @@
 	@media (prefers-reduced-motion: reduce) {
 		.reading-progress-container {
 			transition: opacity 0.1s linear;
-		}
-
-		.reading-progress-bar {
-			transition: width 0.05s linear;
 		}
 	}
 
@@ -181,8 +184,8 @@
 				// Ensure progress is between 0 and 100
 				progress = Math.max(0, Math.min(100, progress));
 
-				// Update progress bar width with smooth transition
-				this.progressBar.style.width = `${progress.toFixed(1)}%`;
+				// 直接写入 transform，不经过 width 过渡，滚动时零延迟
+				this.progressBar.style.transform = `scaleX(${(progress / 100).toFixed(4)})`;
 			}
 		}
 	}

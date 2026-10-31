@@ -14,6 +14,10 @@
 	--color-accent: oklch(45% 0.12 205); /* #00769B 对应的 OKLCH 值 */
 	--color-accent-2: oklch(20% 0.02 205); /* 基于主题色的深色强调 */
 	--color-quote: oklch(50% 0.1 205); /* 基于主题色调整的引用色 */
+
+	/* 统一缓动曲线，避免各组件各写一套 */
+	--ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+	--ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 @layer base {
@@ -76,6 +80,19 @@
 		navigation: auto;
 	}
 
+	/* 全局 reduced-motion 兜底：所有动画/过渡立即完成 */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			transition-delay: 0ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
 	/* Astro image responsive styles, modified from -> https://docs.astro.build/en/guides/images/#responsive-image-styles */
 	:where([data-astro-image]) {
 		object-fit: var(--fit);
@@ -108,6 +125,59 @@
 	/* 引用块样式 - 符合网站全局风格 */
 	.prose blockquote {
 		@apply bg-global-text/5 rounded-md py-1;
+	}
+
+	/*
+	 * Motion Prompt #049 · MIT License (c) 2026 Shohei Ohtaki
+	 * https://showheyohtaki.github.io/motion-prompt/#049
+	 * 搜索弹窗：遮罩淡入 + 窗口缩放
+	 */
+	site-search dialog {
+		opacity: 0;
+		transition:
+			opacity 0.28s var(--ease-out-cubic),
+			transform 0.28s var(--ease-out-cubic),
+			display 0.28s allow-discrete,
+			overlay 0.28s allow-discrete;
+	}
+
+	site-search dialog[open] {
+		opacity: 1;
+	}
+
+	@media (min-width: 640px) {
+		site-search dialog {
+			transform: scale(0.9);
+		}
+
+		site-search dialog[open] {
+			transform: scale(1);
+		}
+
+		@starting-style {
+			site-search dialog[open] {
+				opacity: 0;
+				transform: scale(0.9);
+			}
+		}
+	}
+
+	site-search dialog::backdrop {
+		background-color: rgb(18 20 28 / 0%);
+		transition:
+			background-color 0.3s var(--ease-out-cubic),
+			display 0.3s allow-discrete,
+			overlay 0.3s allow-discrete;
+	}
+
+	site-search dialog[open]::backdrop {
+		background-color: rgb(18 20 28 / 42%);
+	}
+
+	@starting-style {
+		site-search dialog[open]::backdrop {
+			background-color: rgb(18 20 28 / 0%);
+		}
 	}
 }
 
