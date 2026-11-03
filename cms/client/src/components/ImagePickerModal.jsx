@@ -1,347 +1,220 @@
-import React, { useState, useEffect } from 'react'
-import { X, Upload, Folder, ArrowLeft, Image as ImageIcon, Edit3, Trash2 } from 'lucide-react'
-import { assetsAPI } from '../services/api'
+import React, { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, Folder, Image as ImageIcon, Loader2, Search, Upload, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { assetsAPI } from '../services/api'
+
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.bmp', '.avif']
+
+const isImage = (item) =>
+  item.type === 'file' && IMAGE_EXTENSIONS.includes(String(item.ext || '').toLowerCase())
 
 const ImagePickerModal = ({ isOpen, onClose, onSelectImage }) => {
-  const [assets, setAssets] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [items, setItems] = useState([])
   const [currentPath, setCurrentPath] = useState('')
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [showRenameModal, setShowRenameModal] = useState(false)
-  const [renameItem, setRenameItem] = useState(null)
-  const [newName, setNewName] = useState('')
 
   useEffect(() => {
-    if (isOpen) {
-      loadAssets()
-    }
+    if (!isOpen) return
+    setSearch('')
+    loadAssets(currentPath)
   }, [isOpen, currentPath])
 
-  const loadAssets = async () => {
+  useEffect(() => {
+    if (!isOpen) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, onClose])
+
+  const loadAssets = async (path) => {
     setLoading(true)
     try {
-      let response
-      if (currentPath) {
-        response = await assetsAPI.getFolder(currentPath)
-        setAssets(response.data)
-      } else {
-        response = await assetsAPI.getAll()
-        // 对于根目录，只显示顶级项目，不显示嵌套的children
-        const rootItems = response.data.map(item => ({
-          name: item.name,
-          type: item.type,
-          path: item.path,
-          size: item.size,
-          createdAt: item.createdAt,
-          modifiedAt: item.modifiedAt,
-          ext: item.ext
-        }))
-        setAssets(rootItems)
-      }
+      const response = path ? await assetsAPI.getFolder(path) : await assetsAPI.getAll()
+      setItems(response.data)
     } catch (error) {
       console.error('Error loading assets:', error)
-      toast.error(`加载资源失败: ${error.message}`)
+      toast.error('加载图片资源失败')
     } finally {
       setLoading(false)
     }
   }
 
+  const breadcrumbs = useMemo(
+    () => ['全部', ...currentPath.split('/').filter(Boolean)],
+    [currentPath]
+  )
+
+  const navigateToBreadcrumb = (index) => {
+    if (index === 0) {
+      setCurrentPath('')
+      return
+    }
+    setCurrentPath(currentPath.split('/').filter(Boolean).slice(0, index).join('/'))
+  }
+
+  const visibleItems = items.filter((item) => {
+    if (item.type === 'directory') return !search || item.name.toLowerCase().includes(search.toLowerCase())
+    if (!isImage(item)) return false
+    return !search || item.name.toLowerCase().includes(search.toLowerCase())
+  })
+
   const handleUpload = async (event) => {
-    const files = Array.from(event.target.files)
-    if (files.length === 0) return
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
 
     setUploading(true)
+    const folder = currentPath || 'images'
+
     try {
       for (const file of files) {
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('folder', currentPath || 'images')
-
+        formData.append('folder', folder)
         await assetsAPI.upload(formData)
       }
-      toast.success('上传成功')
-      loadAssets() // 重新加载资源列表
+      toast.success(`已上传 ${files.length} 个文件`)
+      await loadAssets(currentPath)
     } catch (error) {
-      console.error('Error uploading files:', error)
+      console.error('Error uploading images:', error)
       toast.error('上传失败')
     } finally {
       setUploading(false)
+      event.target.value = ''
     }
-  }
-
-  const handleFolderClick = (folderName) => {
-    const newPath = currentPath ? `${currentPath}/${folderName}` : folderName
-    setCurrentPath(newPath)
-  }
-
-  const handleBackClick = () => {
-    const pathParts = currentPath.split('/')
-    pathParts.pop()
-    setCurrentPath(pathParts.join('/'))
-  }
-
-  const handleImageSelect = (item) => {
-    const imagePath = currentPath ? `${currentPath}/${item.name}` : item.name
-    onSelectImage(imagePath)
-    onClose()
-  }
-
-  const handleRename = (item, e) => {
-    e.stopPropagation() // 防止触发选择事件
-    setRenameItem(item)
-    setNewName(item.name)
-    setShowRenameModal(true)
-  }
-
-  const executeRename = async () => {
-    if (!renameItem || !newName.trim()) return
-
-    try {
-      const itemPath = currentPath ? `${currentPath}/${renameItem.name}` : renameItem.name
-      await assetsAPI.rename(itemPath, newName.trim())
-      toast.success('重命名成功')
-      setShowRenameModal(false)
-      setRenameItem(null)
-      setNewName('')
-      loadAssets()
-    } catch (error) {
-      console.error('Error renaming item:', error)
-      toast.error(error.response?.data?.error || '重命名失败')
-    }
-  }
-
-  const handleDelete = async (item, e) => {
-    e.stopPropagation() // 防止触发选择事件
-
-    if (!window.confirm(`确定要删除 "${item.name}" 吗？`)) {
-      return
-    }
-
-    try {
-      const itemPath = currentPath ? `${currentPath}/${item.name}` : item.name
-      await assetsAPI.delete(itemPath)
-      toast.success('删除成功')
-      loadAssets()
-    } catch (error) {
-      console.error('Error deleting item:', error)
-      toast.error('删除失败')
-    }
-  }
-
-  const isImage = (filename) => {
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp', '.bmp']
-    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext))
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-3/4 flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center space-x-2">
-            <ImageIcon className="h-5 w-5 text-blue-600" />
-            <h2 className="text-lg font-semibold">选择图片</h2>
-            {currentPath && (
-              <span className="text-sm text-gray-500">/ {currentPath}</span>
-            )}
+    <div className="fixed inset-0 z-[65] flex items-center justify-center p-3 sm:p-6">
+      <div className="absolute inset-0 bg-slate-900/45 backdrop-blur-[2px]" onClick={onClose} />
+
+      <div className="card relative flex h-[82vh] w-full max-w-5xl animate-fadeIn flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">选择图片</h2>
+            <p className="mt-0.5 text-xs text-slate-400">点击图片插入到文章光标位置</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded"
-          >
+          <button type="button" className="btn-icon -mr-2" onClick={onClose}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Toolbar */}
-        <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-          <div className="flex items-center space-x-2">
+        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm">
             {currentPath && (
               <button
-                onClick={handleBackClick}
-                className="flex items-center space-x-1 px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+                type="button"
+                onClick={() => {
+                  const parts = currentPath.split('/').filter(Boolean)
+                  setCurrentPath(parts.slice(0, -1).join('/'))
+                }}
+                className="mr-1 rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                title="返回上级"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span>返回上级</span>
               </button>
             )}
+            {breadcrumbs.map((part, index) => (
+              <React.Fragment key={`${part}-${index}`}>
+                {index > 0 && <span className="text-slate-300">/</span>}
+                <button
+                  type="button"
+                  onClick={() => navigateToBreadcrumb(index)}
+                  className={`max-w-[10rem] truncate rounded px-1.5 py-1 ${
+                    index === breadcrumbs.length - 1
+                      ? 'font-medium text-slate-900'
+                      : 'text-slate-500 hover:bg-slate-200/70'
+                  }`}
+                >
+                  {part}
+                </button>
+              </React.Fragment>
+            ))}
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <label className="flex items-center space-x-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded cursor-pointer">
-              <Upload className="h-4 w-4" />
-              <span>{uploading ? '上传中...' : '上传图片'}</span>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="搜索当前目录"
+                className="input h-9 w-40 py-1.5 pl-8 text-xs sm:w-52"
+              />
+            </div>
+            <label className="btn btn-primary btn-sm cursor-pointer">
+              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {uploading ? '上传中' : '上传'}
               <input
                 type="file"
-                multiple
                 accept="image/*"
-                onChange={handleUpload}
+                multiple
                 className="hidden"
                 disabled={uploading}
+                onChange={handleUpload}
               />
             </label>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
           {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-gray-500">加载中...</div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+              {Array.from({ length: 10 }).map((_, index) => (
+                <div key={index} className="skeleton aspect-square rounded-xl" />
+              ))}
             </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {assets.map((item, index) => (
-                <div key={index} className="group">
+          ) : visibleItems.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+              {visibleItems.map((item) => (
+                <div key={item.path || item.name}>
                   {item.type === 'directory' ? (
-                    <div className="relative group">
-                      <div
-                        onClick={() => handleFolderClick(item.name)}
-                        className="flex flex-col items-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer transition-colors"
-                      >
-                        <Folder className="h-12 w-12 text-blue-500 mb-2" />
-                        <span className="text-sm text-center break-all">{item.name}</span>
-                      </div>
-                      {/* 操作按钮 */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
-                        <button
-                          onClick={(e) => handleRename(item, e)}
-                          className="p-1 bg-white rounded shadow hover:bg-gray-50"
-                          title="重命名"
-                        >
-                          <Edit3 className="h-3 w-3 text-gray-600" />
-                        </button>
-                        <button
-                          onClick={(e) => handleDelete(item, e)}
-                          className="p-1 bg-white rounded shadow hover:bg-gray-50"
-                          title="删除"
-                        >
-                          <Trash2 className="h-3 w-3 text-red-600" />
-                        </button>
-                      </div>
-                    </div>
-                  ) : isImage(item.name) ? (
-                    <div
-                      onClick={() => handleImageSelect(item)}
-                      className="relative cursor-pointer group"
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPath(item.path || item.name)}
+                      className="group flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center transition-colors hover:border-brand-300 hover:bg-brand-50/60"
                     >
-                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-blue-500 transition-colors">
-                        <img
-                          src={assetsAPI.preview(currentPath ? `${currentPath}/${item.name}` : item.name)}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none'
-                            e.target.nextSibling.style.display = 'flex'
-                          }}
-                        />
-                        <div className="hidden w-full h-full items-center justify-center bg-gray-200">
-                          <ImageIcon className="h-8 w-8 text-gray-400" />
-                        </div>
-                      </div>
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg flex items-center justify-center">
-                        <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
-                          选择
-                        </span>
-                      </div>
-                      {/* 操作按钮 */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
-                        <button
-                          onClick={(e) => handleRename(item, e)}
-                          className="p-1 bg-white rounded shadow hover:bg-gray-50"
-                          title="重命名"
-                        >
-                          <Edit3 className="h-3 w-3 text-gray-600" />
-                        </button>
-                        <button
-                          onClick={(e) => handleDelete(item, e)}
-                          className="p-1 bg-white rounded shadow hover:bg-gray-50"
-                          title="删除"
-                        >
-                          <Trash2 className="h-3 w-3 text-red-600" />
-                        </button>
-                      </div>
-                      <p className="mt-1 text-xs text-center break-all">{item.name}</p>
-                    </div>
+                      <Folder className="h-9 w-9 text-brand-500" />
+                      <span className="clamp-2 text-xs font-medium text-slate-600">{item.name}</span>
+                    </button>
                   ) : (
-                    <div className="flex flex-col items-center p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="h-12 w-12 bg-gray-300 rounded mb-2 flex items-center justify-center">
-                        <span className="text-xs text-gray-600">FILE</span>
-                      </div>
-                      <span className="text-sm text-center break-all text-gray-600">{item.name}</span>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onSelectImage(item.path || item.name)}
+                      className="group relative block aspect-square w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition-all hover:border-brand-400 hover:ring-4 hover:ring-brand-500/10"
+                    >
+                      <img
+                        src={assetsAPI.preview(item.path || item.name)}
+                        alt={item.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                      />
+                      <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-slate-900/70 to-transparent px-2 pb-1.5 pt-6 text-left text-[11px] text-white">
+                        {item.name}
+                      </span>
+                    </button>
                   )}
                 </div>
               ))}
             </div>
-          )}
-
-          {!loading && assets.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <ImageIcon className="h-16 w-16 mb-4" />
-              <p>当前目录没有文件</p>
-              <p className="text-sm">点击上传按钮添加图片</p>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-slate-100">
+                <ImageIcon className="h-7 w-7 text-slate-400" />
+              </div>
+              <p className="mt-3 text-sm font-medium text-slate-600">
+                {search ? '没有匹配的图片' : '当前目录还没有图片'}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">可以直接上传图片，或返回上级文件夹</p>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t bg-gray-50">
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
-              取消
-            </button>
-          </div>
         </div>
       </div>
-
-      {/* 重命名弹窗 */}
-      {showRenameModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold mb-4">
-              重命名 {renameItem?.type === 'directory' ? '文件夹' : '文件'}
-            </h3>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="输入新名称"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  executeRename()
-                }
-              }}
-            />
-            <div className="flex justify-end space-x-3 mt-4">
-              <button
-                onClick={() => {
-                  setShowRenameModal(false)
-                  setRenameItem(null)
-                  setNewName('')
-                }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                取消
-              </button>
-              <button
-                onClick={executeRename}
-                disabled={!newName.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                重命名
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,114 +1,179 @@
-import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { 
-  FileText, 
-  StickyNote, 
-  Tag, 
-  Image, 
-  Home,
+import React, { useEffect, useState } from 'react'
+import { Link, NavLink } from 'react-router-dom'
+import {
+  ExternalLink,
+  FileText,
+  Image as ImageIcon,
+  LayoutDashboard,
   Menu,
-  X
+  StickyNote,
+  Tags,
+  X,
 } from 'lucide-react'
+import { BLOG_DEV_URL } from '../utils/url'
+
+const navigation = [
+  { name: '概览', href: '/', icon: LayoutDashboard, end: true },
+  { name: '文章', href: '/posts', icon: FileText },
+  { name: '笔记', href: '/notes', icon: StickyNote },
+  { name: '标签', href: '/tags', icon: Tags },
+  { name: '资源', href: '/assets', icon: ImageIcon },
+]
+
+const Brand = () => (
+  <Link to="/" className="flex items-center gap-3">
+    <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-sm font-semibold text-white shadow-sm">
+      M
+    </span>
+    <span className="min-w-0">
+      <span className="block text-sm font-semibold leading-5 text-slate-900">Moatkon CMS</span>
+      <span className="block text-[11px] leading-4 text-slate-400">博客内容管理</span>
+    </span>
+  </Link>
+)
+
+const NavItems = ({ onNavigate }) => (
+  <nav className="space-y-1">
+    {navigation.map((item) => {
+      const Icon = item.icon
+      return (
+        <NavLink
+          key={item.href}
+          to={item.href}
+          end={item.end}
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            [
+              'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-brand-50 text-brand-700'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+            ].join(' ')
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <Icon
+                className={`h-[18px] w-[18px] ${
+                  isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'
+                }`}
+              />
+              {item.name}
+            </>
+          )}
+        </NavLink>
+      )
+    })}
+  </nav>
+)
+
+const BlogLink = ({ online }) => (
+  <a
+    href={BLOG_DEV_URL}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 transition-colors hover:border-brand-200 hover:bg-brand-50/40"
+  >
+    <span className="flex items-center gap-2.5">
+      <span
+        className={`h-2 w-2 rounded-full ${online ? 'bg-emerald-500' : 'bg-slate-300'}`}
+        title={online ? '博客开发服务器运行中' : '博客开发服务器未启动'}
+      />
+      <span>
+        <span className="block text-xs font-medium text-slate-700">打开博客</span>
+        <span className="block text-[11px] text-slate-400">
+          {online ? 'localhost:4321 运行中' : 'localhost:4321 未启动'}
+        </span>
+      </span>
+    </span>
+    <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+  </a>
+)
 
 const Layout = ({ children }) => {
-  const location = useLocation()
-  const [sidebarOpen, setSidebarOpen] = React.useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [blogOnline, setBlogOnline] = useState(false)
 
-  const navigation = [
-    { name: '仪表板', href: '/', icon: Home },
-    { name: 'Posts', href: '/posts', icon: FileText },
-    // { name: 'Notes', href: '/notes', icon: StickyNote },
-    { name: 'Tags', href: '/tags', icon: Tag },
-    { name: '静态资源', href: '/assets', icon: Image },
-  ]
+  useEffect(() => {
+    let cancelled = false
 
-  const isActive = (href) => {
-    if (href === '/') {
-      return location.pathname === '/'
+    const checkBlogStatus = () => {
+      fetch('/api/blog-status')
+        .then((response) => response.json())
+        .then((data) => {
+          if (!cancelled) setBlogOnline(Boolean(data.online))
+        })
+        .catch(() => {
+          if (!cancelled) setBlogOnline(false)
+        })
     }
-    return location.pathname.startsWith(href)
-  }
+
+    checkBlogStatus()
+    const timer = setInterval(checkBlogStatus, 15000)
+
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-          <div className="flex h-16 items-center justify-between px-4">
-            <h1 className="text-xl font-semibold text-gray-900">Blog CMS</h1>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-6 w-6" />
+    <div className="min-h-screen bg-slate-50">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 bg-white lg:flex">
+        <div className="flex h-16 items-center border-b border-slate-100 px-5">
+          <Brand />
+        </div>
+        <div className="flex-1 overflow-y-auto px-3 py-5">
+          <p className="section-title mb-2 px-3">内容</p>
+          <NavItems />
+        </div>
+        <div className="border-t border-slate-100 p-3">
+          <BlogLink online={blogOnline} />
+        </div>
+      </aside>
+
+      <div
+        className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
+        <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white shadow-pop">
+          <div className="flex h-16 items-center justify-between border-b border-slate-100 px-5">
+            <Brand />
+            <button type="button" className="btn-icon" onClick={() => setSidebarOpen(false)}>
+              <X className="h-5 w-5" />
             </button>
           </div>
-          <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive(item.href)
-                      ? 'bg-blue-100 text-blue-900'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
-      </div>
-
-      {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex h-16 items-center px-4">
-            <h1 className="text-xl font-semibold text-gray-900">Blog CMS</h1>
+          <div className="flex-1 overflow-y-auto px-3 py-5">
+            <p className="section-title mb-2 px-3">内容</p>
+            <NavItems onNavigate={() => setSidebarOpen(false)} />
           </div>
-          <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive(item.href)
-                      ? 'bg-blue-100 text-blue-900'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
+          <div className="border-t border-slate-100 p-3">
+            <BlogLink online={blogOnline} />
+          </div>
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="lg:pl-64">
-        <div className="flex h-16 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm lg:px-6">
-          <button
-            type="button"
-            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-6 w-6" />
+      <div className="lg:pl-60">
+        <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:hidden">
+          <button type="button" className="btn-icon -ml-2" onClick={() => setSidebarOpen(true)}>
+            <Menu className="h-5 w-5" />
           </button>
-        </div>
+          <Brand />
+          <a
+            href={BLOG_DEV_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-icon -mr-2"
+            title="打开博客"
+          >
+            <ExternalLink className="h-5 w-5" />
+          </a>
+        </header>
 
-        <main className="py-6">
-          <div className="px-4 sm:px-6 lg:px-8">
+        <main>
+          <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             {children}
           </div>
         </main>

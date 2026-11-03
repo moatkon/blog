@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 4321
+    },
+    {
+      "name": "cms-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "cms", "run", "start"],
+      "port": 3001
+    },
+    {
+      "name": "cms-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "cms/client", "run", "dev"],
+      "port": 5173
     }
   ]
 }

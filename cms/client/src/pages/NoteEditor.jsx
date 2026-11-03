@@ -1,378 +1,419 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Save, ArrowLeft, Clock } from 'lucide-react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Copy, Eye, ExternalLink, Save } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { notesAPI } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor'
 import AutoSaveIndicator from '../components/AutoSaveIndicator'
+import ConfirmDialog from '../components/ConfirmDialog'
+import PreviewModal from '../components/PreviewModal'
+import RenameModal from '../components/RenameModal'
 import { useAutoSave } from '../hooks/useAutoSave'
-import toast from 'react-hot-toast'
+import {
+  formatDateTime,
+  formatForDateInput,
+  fromInputToNoteDate,
+  toNoteDate,
+} from '../utils/date'
+import { getNotePreviewUrl } from '../utils/url'
+
+const LOCAL_DRAFT_KEY = 'cms:note-draft'
+
+const emptyNote = () => ({
+  title: '',
+  description: '',
+  body: '',
+  publishDate: toNoteDate(),
+})
+
+const buildPayload = (data) => ({
+  title: data.title.trim(),
+  description: data.description ?? '',
+  body: data.body ?? '',
+  publishDate: data.publishDate || toNoteDate(),
+})
 
 const NoteEditor = () => {
   const params = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
-  // 格式化时间为Notes的ISO格式 (YYYY-MM-DDTHH:mm:ss+08:00)
-  const formatDateForNote = (date) => {
-    if (!date) return ''
-    const d = new Date(date)
-    if (isNaN(d.getTime())) return ''
-
-    // 转换为北京时间并格式化为ISO格式
-    const beijingTime = new Date(d.getTime() + (8 * 60 * 60 * 1000))
-    return beijingTime.toISOString().replace('Z', '+08:00')
-  }
-
-  // 将Notes的ISO格式转换为datetime-local输入格式 (YYYY-MM-DDTHH:mm)
-  const formatDateForInput = (dateStr) => {
-    if (!dateStr) return ''
-    try {
-      // Notes格式: "2024-01-01T12:30:45+08:00"
-      const date = new Date(dateStr)
-      if (isNaN(date.getTime())) return ''
-
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
-
-      return `${year}-${month}-${day}T${hours}:${minutes}`
-    } catch (error) {
-      console.error('Error formatting date for input:', error)
-      return ''
-    }
-  }
-
-  // 从datetime-local输入格式转换为Notes的ISO格式
-  const formatInputForNote = (inputValue) => {
-    if (!inputValue) return ''
-    try {
-      // 输入格式: "2024-01-01T12:30"
-      const date = new Date(inputValue)
-      return formatDateForNote(date)
-    } catch (error) {
-      console.error('Error formatting input for note:', error)
-      return ''
-    }
-  }
-
-  // 从路径中提取完整的ID
   const isNewNote = location.pathname === '/notes/new'
-  const id = isNewNote ? null : (params['*'] || location.pathname.replace('/notes/edit/', ''))
-  const isEditing = Boolean(id) && !isNewNote
+  const legacyId = params['*'] || location.pathname.replace('/notes/edit/', '')
+  const routeId = searchParams.get('id') || legacyId
+  const id = isNewNote ? null : decodeURIComponent(routeId)
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    body: '',
-    publishDate: isNewNote ? formatDateForNote(new Date()) : '' // 新建时自动填充当前时间
-  })
-  const [originalNote, setOriginalNote] = useState(null) // 存储原始note数据用于比较
-  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState(emptyNote)
+  const [baseline, setBaseline] = useState(null)
+  const [meta, setMeta] = useState({ filePath: '', updatedDate: null })
+  const [currentId, setCurrentId] = useState(id)
+  const [loading, setLoading] = useState(Boolean(id))
   const [saving, setSaving] = useState(false)
-  const [currentId, setCurrentId] = useState(id) // 跟踪当前的ID
-  const [isCreating, setIsCreating] = useState(false) // 标记是否正在创建新笔记
+  const [showPreview, setShowPreview] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
 
-  useEffect(() => {
-    if (isEditing && id) {
-      loadNote()
-    }
-  }, [isEditing, id])
+  const formRef = useRef(formData)
+  const currentIdRef = useRef(currentId)
+  formRef.current = formData
+  currentIdRef.current = currentId
 
-  const loadNote = async () => {
-    setLoading(true)
-    try {
-      const response = await notesAPI.getById(id)
-      const note = response.data
-      const noteData = {
-        title: note.title || '',
-        description: note.description || '',
-        body: note.body || '',
-        publishDate: note.publishDate || ''
-      }
-      setFormData(noteData)
-      setOriginalNote(noteData) // 保存原始数据用于比较
-    } catch (error) {
-      console.error('Error loading note:', error)
-      toast.error('加载Note失败')
-      navigate('/notes')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const dirty = baseline !== null ? JSON.stringify(formData) !== baseline : Boolean(formData.title || formData.body)
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    if (!formData.title.trim()) {
-      toast.error('请输入标题')
+  const autosave = useCallback(async (data) => {
+    if (!data.title?.trim()) return
+
+    const payload = buildPayload(data)
+
+    if (!currentIdRef.current) {
+      localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(payload))
       return
     }
 
-    setSaving(true)
-    try {
-      if (currentId) {
-        // 如果已经有ID，更新现有Note
-        await notesAPI.update(currentId, formData)
-        toast.success('Note更新成功')
-      } else if (!isCreating) {
-        // 如果没有ID且未在创建中，创建新Note
-        setIsCreating(true);
-        try {
-          const response = await notesAPI.create(formData)
-          toast.success('Note创建成功')
-        } finally {
-          setIsCreating(false);
-        }
-      } else {
-        // 如果正在创建中，等待创建完成后再处理
-        toast.success('Note已保存')
-      }
-      navigate('/notes')
-    } catch (error) {
-      console.error('Error saving note:', error)
-      toast.error(currentId ? '更新Note失败' : '创建Note失败')
-    } finally {
-      setSaving(false)
-    }
-  }
+    await notesAPI.update(currentIdRef.current, payload)
+  }, [])
 
-  // 自动保存函数
-  const autoSaveFunction = useCallback(async (data) => {
-    // 只有在有标题或内容的情况下才自动保存
-    if (!data.title?.trim() && !data.body?.trim() && !data.description?.trim()) {
-      throw new Error('内容为空时不自动保存');
-    }
-
-    // 比较当前数据与原始数据，只有在有实际更改时才保存
-    const hasChanges = 
-      originalNote && (
-        data.title !== originalNote.title ||
-        data.description !== originalNote.description ||
-        data.body !== originalNote.body
-      );
-
-    // 如果是新笔记(没有原始数据)，直接保存
-    if (!originalNote) {
-      console.log('Note自动保存触发(新笔记):', { currentId, hasTitle: !!data.title?.trim() });
-      
-      if (currentId) {
-        // 已有ID，更新现有Note
-        console.log('更新现有Note:', currentId);
-        await notesAPI.update(currentId, data);
-        // 更新原始数据为当前数据
-        setOriginalNote({ ...data });
-      } else if (!isCreating) {
-        // 没有ID且未在创建中，创建新Note
-        console.log('创建新Note');
-        setIsCreating(true); // 设置创建状态，防止重复创建
-        try {
-          const response = await notesAPI.create(data);
-          const newNote = response.data;
-
-          // 更新URL和状态，切换到编辑模式
-          window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
-          setCurrentId(newNote.id);
-          // 更新原始数据
-          setOriginalNote({ ...data });
-          toast.success('Note已自动创建并保存');
-        } finally {
-          setIsCreating(false); // 重置创建状态
-        }
-      }
-      return;
-    }
-
-    if (!hasChanges) {
-      console.log('Note自动保存触发但无实际更改，跳过保存');
-      return; // 没有实际更改，不保存
-    }
-
-    console.log('Note自动保存触发:', { currentId, hasTitle: !!data.title?.trim(), hasChanges });
-
-    if (currentId) {
-      // 已有ID，更新现有Note
-      console.log('更新现有Note:', currentId);
-      await notesAPI.update(currentId, data);
-      // 更新原始数据为当前数据
-      setOriginalNote({ ...data });
-    } else if (!isCreating) {
-      // 没有ID，创建新Note
-      console.log('创建新Note');
-      setIsCreating(true); // 设置创建状态，防止重复创建
-      try {
-        const response = await notesAPI.create(data);
-        const newNote = response.data;
-
-        // 更新URL和状态，切换到编辑模式
-        window.history.replaceState(null, '', `/notes/edit/${newNote.id}`);
-        setCurrentId(newNote.id);
-        // 更新原始数据
-        setOriginalNote({ ...data });
-        toast.success('Note已自动创建并保存');
-      } finally {
-        setIsCreating(false); // 重置创建状态
-      }
-    }
-  }, [currentId, originalNote, isCreating]);
-
-  // 设置当前时间
-  const setCurrentTime = () => {
-    const now = new Date()
-    const formattedTime = formatDateForNote(now)
-    setFormData(prev => ({ ...prev, publishDate: formattedTime }))
-  }
-
-  // 使用自动保存Hook
-  const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({
-    saveFunction: autoSaveFunction,
+  const { status, lastSaved, markSaved, reset } = useAutoSave({
     data: formData,
-    delay: 3000, // 3秒延迟
-    enabled: !saving, // 只要不在手动保存就启用自动保存
-    onSaveSuccess: () => {
-      // 自动保存成功时的回调
+    onSave: autosave,
+    delay: 1800,
+    enabled: !loading && !saving,
+    shouldSave: (data) => Boolean(data.title?.trim() || data.body?.trim()),
+  })
+
+  const loadNote = useCallback(
+    async (noteId) => {
+      setLoading(true)
+      try {
+        const response = await notesAPI.getById(noteId)
+        const note = response.data
+        const nextData = {
+          title: note.title || '',
+          description: note.description || '',
+          body: note.body || '',
+          publishDate: note.publishDate || toNoteDate(),
+        }
+        setFormData(nextData)
+        setBaseline(JSON.stringify(nextData))
+        reset(nextData)
+        setMeta({ filePath: note.filePath || '', updatedDate: note.updatedDate || null })
+        setCurrentId(noteId)
+      } catch (error) {
+        console.error('Error loading note:', error)
+        toast.error('加载笔记失败')
+        navigate('/notes', { replace: true })
+      } finally {
+        setLoading(false)
+      }
     },
-    onSaveError: (error) => {
-      console.error('Auto save failed:', error);
+    [navigate, reset]
+  )
+
+  useEffect(() => {
+    if (!id) return
+    loadNote(id)
+  }, [id, loadNote])
+
+  useEffect(() => {
+    if (id) return
+
+    try {
+      const raw = localStorage.getItem(LOCAL_DRAFT_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (!parsed?.title?.trim() && !parsed?.body?.trim()) return
+
+      setFormData((previous) => ({ ...previous, ...parsed }))
+      setBaseline(null)
+      toast('已恢复上次未保存的本地草稿', { icon: '↩️' })
+    } catch {
+      localStorage.removeItem(LOCAL_DRAFT_KEY)
     }
-  });
+  }, [id])
+
+  const handleSave = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!formRef.current.title?.trim()) {
+        toast.error('请先填写标题')
+        return null
+      }
+      if (formRef.current.title.trim().length > 60) {
+        toast.error('标题不能超过 60 个字符')
+        return null
+      }
+
+      setSaving(true)
+      try {
+        const payload = buildPayload(formRef.current)
+        let savedId = currentIdRef.current
+
+        if (savedId) {
+          await notesAPI.update(savedId, payload)
+        } else {
+          const response = await notesAPI.create(payload)
+          savedId = response.data.id
+          setCurrentId(savedId)
+          currentIdRef.current = savedId
+          localStorage.removeItem(LOCAL_DRAFT_KEY)
+          navigate(`/notes/edit?id=${encodeURIComponent(savedId)}`, { replace: true })
+        }
+
+        setFormData(payload)
+        setBaseline(JSON.stringify(payload))
+        markSaved(payload)
+        setMeta((previous) => ({ ...previous, updatedDate: new Date().toISOString() }))
+
+        if (!silent) toast.success('已保存')
+        return savedId
+      } catch (error) {
+        console.error('Error saving note:', error)
+        toast.error('保存失败，请检查服务是否正常')
+        return null
+      } finally {
+        setSaving(false)
+      }
+    },
+    [markSaved, navigate]
+  )
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault()
+        handleSave()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handleSave])
+
+  useEffect(() => {
+    const onBeforeUnload = (event) => {
+      if (!dirty) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
+
+  const openInBlog = async () => {
+    const newWindow = window.open('', '_blank')
+    const savedId = await handleSave({ silent: true })
+    if (savedId) {
+      const url = getNotePreviewUrl(savedId)
+      if (newWindow) newWindow.location.href = url
+      else window.open(url, '_blank', 'noopener')
+    } else {
+      newWindow?.close()
+    }
+  }
+
+  const handleRename = async (newPath) => {
+    if (!currentId) return
+    await notesAPI.rename(currentId, { newPath })
+    toast.success('文件路径已更新')
+    navigate(`/notes/edit?id=${encodeURIComponent(newPath)}`, { replace: true })
+  }
+
+  const copyPath = async () => {
+    const path = meta.filePath || (currentId ? `src/content/note/${currentId}` : '')
+    if (!path) return
+    try {
+      await navigator.clipboard.writeText(path)
+      toast.success('文件路径已复制')
+    } catch {
+      toast.error('复制失败')
+    }
+  }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      <div className="space-y-4">
+        <div className="skeleton h-10 w-40" />
+        <div className="skeleton h-16 w-full" />
+        <div className="skeleton h-[520px] w-full" />
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <div className="flex items-center space-x-4">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/notes')}
-            className="flex items-center text-gray-600 hover:text-gray-900"
+            type="button"
+            className="btn btn-ghost btn-sm -ml-2"
+            onClick={() => (dirty ? setLeaveOpen(true) : navigate('/notes'))}
           >
-            <ArrowLeft className="h-4 w-4 mr-1" />
+            <ArrowLeft className="h-4 w-4" />
             返回
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {isEditing ? '编辑Note' : '新建Note'}
-          </h1>
-          {/* 自动保存状态指示器 */}
+          <span className="text-slate-300">/</span>
+          <span className="text-sm font-medium text-slate-500">
+            {currentId ? '编辑笔记' : '新建笔记'}
+          </span>
           <AutoSaveIndicator
-            status={autoSaveStatus}
+            status={status}
             lastSaved={lastSaved}
-            onForceSave={forceSave}
-            className="ml-4"
+            dirty={dirty}
+            localDraft={!currentId}
+            className="hidden sm:inline-flex"
           />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <AutoSaveIndicator
+            status={status}
+            lastSaved={lastSaved}
+            dirty={dirty}
+            localDraft={!currentId}
+            className="sm:hidden"
+          />
+          <button type="button" className="btn btn-secondary btn-md" onClick={() => setShowPreview(true)}>
+            <Eye className="h-4 w-4" />
+            预览
+          </button>
+          <button type="button" className="btn btn-secondary btn-md" onClick={openInBlog}>
+            <ExternalLink className="h-4 w-4" />
+            在博客中打开
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-md"
+            disabled={saving}
+            onClick={() => handleSave()}
+          >
+            <Save className="h-4 w-4" />
+            {saving ? '保存中…' : '保存'}
+          </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="grid grid-cols-1 gap-6">
-            {/* 标题 */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                标题 *
-              </label>
-              <input
-                type="text"
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
-                placeholder="输入Note标题"
-                required
-              />
-            </div>
-
-            {/* 描述 */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                描述
-              </label>
-              <textarea
-                id="description"
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
-                placeholder="输入Note描述（可选）"
-              />
-            </div>
-
-            {/* 发布日期 */}
-            <div>
-              <label htmlFor="publishDate" className="block text-sm font-medium text-gray-700">
-                发布日期
-              </label>
-              <div className="mt-1 flex space-x-2">
-                <input
-                  type="datetime-local"
-                  id="publishDate"
-                  value={formatDateForInput(formData.publishDate)}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    publishDate: formatInputForNote(e.target.value)
-                  }))}
-                  className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
-                />
-                <button
-                  type="button"
-                  onClick={setCurrentTime}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  title="设置为当前时间"
-                >
-                  <Clock className="h-4 w-4" />
-                </button>
-              </div>
-              {formData.publishDate && (
-                <p className="mt-1 text-sm text-gray-500">
-                  格式: {formData.publishDate}
-                </p>
-              )}
-            </div>
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="card flex items-center gap-2 px-4 py-2">
+            <input
+              value={formData.title}
+              maxLength={60}
+              onChange={(event) =>
+                setFormData((previous) => ({ ...previous, title: event.target.value }))
+              }
+              placeholder="笔记标题"
+              className="w-full border-0 bg-transparent text-2xl font-semibold tracking-tight text-slate-900 placeholder:text-slate-300 focus:outline-none sm:text-3xl"
+            />
+            {formData.title.length > 50 && (
+              <span className="shrink-0 text-xs text-slate-400">{formData.title.length}/60</span>
+            )}
           </div>
-        </div>
 
-        {/* 内容编辑器 */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-4">
-            内容
-          </label>
           <MarkdownEditor
             value={formData.body}
-            onChange={(value) => setFormData(prev => ({ ...prev, body: value }))}
-            placeholder="记录你的想法..."
+            onChange={(value) => setFormData((previous) => ({ ...previous, body: value }))}
+            onSave={() => handleSave()}
+            placeholder="记录想法… 支持 Markdown、拖拽或粘贴图片"
+            className="h-[68vh] min-h-[520px] xl:h-[calc(100vh-15.5rem)]"
           />
         </div>
 
-        {/* 保存按钮 */}
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={() => navigate('/notes')}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            取消
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-          >
-            {saving ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {saving ? '保存中...' : '保存'}
-          </button>
-        </div>
-      </form>
+        <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+          <section className="card p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900">发布设置</h2>
+              {meta.updatedDate && (
+                <span className="text-[11px] text-slate-400">更新于 {formatDateTime(meta.updatedDate)}</span>
+              )}
+            </div>
+
+            <label className="mt-4 block text-xs font-medium text-slate-500" htmlFor="publishDate">
+              发布日期
+            </label>
+            <div className="mt-1.5 flex gap-2">
+              <input
+                id="publishDate"
+                type="datetime-local"
+                value={formatForDateInput(formData.publishDate)}
+                onChange={(event) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    publishDate: fromInputToNoteDate(event.target.value),
+                  }))
+                }
+                className="input"
+              />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm shrink-0"
+                onClick={() => setFormData((previous) => ({ ...previous, publishDate: toNoteDate() }))}
+              >
+                现在
+              </button>
+            </div>
+          </section>
+
+          <section className="card p-5">
+            <h2 className="text-sm font-semibold text-slate-900">摘要</h2>
+            <textarea
+              rows={4}
+              value={formData.description}
+              onChange={(event) =>
+                setFormData((previous) => ({ ...previous, description: event.target.value }))
+              }
+              placeholder="可选，用于列表页展示"
+              className="input mt-3 resize-none"
+            />
+          </section>
+
+          <section className="card px-5 py-4 text-xs text-slate-400">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate font-mono">{currentId || '保存后生成文件路径'}</span>
+              {currentId && (
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm px-2 py-1 text-[11px]"
+                    onClick={() => setRenameOpen(true)}
+                  >
+                    重命名
+                  </button>
+                  <button type="button" className="btn-icon p-1" onClick={copyPath} title="复制路径">
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <PreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        type="note"
+        data={{ ...formData, id: currentId }}
+      />
+
+      <RenameModal
+        isOpen={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        onRename={handleRename}
+        currentPath={currentId}
+        title={formData.title}
+        type="note"
+      />
+
+      <ConfirmDialog
+        open={leaveOpen}
+        title="离开编辑器？"
+        message="当前有未保存的修改，离开后这些修改会丢失。"
+        confirmLabel="离开"
+        onConfirm={() => {
+          setLeaveOpen(false)
+          navigate('/notes')
+        }}
+        onCancel={() => setLeaveOpen(false)}
+      />
     </div>
   )
 }

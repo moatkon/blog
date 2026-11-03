@@ -18,6 +18,9 @@ export const CONTENT_PATHS = {
 // 支持的文件扩展名
 export const SUPPORTED_EXTENSIONS = ['.md', '.mdx'];
 
+// CMS 服务端口。使用独立变量，避免通用 PORT 被开发工具注入时与 Vite 端口冲突。
+export const CMS_PORT = Number(process.env.CMS_PORT) || 3001;
+
 // 图片处理配置
 export const IMAGE_PROCESSING_CONFIG = {
   // 是否启用图片元信息抹除
@@ -36,7 +39,7 @@ export const IMAGE_PROCESSING_CONFIG = {
   optimizeForWeb: true,
 
   // 支持的图片格式
-  supportedFormats: ['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.tif'],
+  supportedFormats: ['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.tif', '.avif'],
 
   // 最大文件大小 (字节)
   maxFileSize: 10 * 1024 * 1024, // 10MB
@@ -48,21 +51,35 @@ export const IMAGE_PROCESSING_CONFIG = {
   enablePrivacyCheck: true
 };
 
+// 北京时间（Asia/Shanghai）的墙上时间，避免手动加减小时导致的时区错位
+function getBeijingParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  });
+
+  const parts = Object.fromEntries(
+    formatter.formatToParts(date).map((part) => [part.type, part.value])
+  );
+
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
 // 获取北京时间的工具函数
 export function getBeijingTime(format = 'iso') {
-  const now = new Date();
-  // 北京时间是UTC+8
-  const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+  const simple = getBeijingParts();
 
   if (format === 'iso') {
-    // 返回ISO 8601格式，带时区偏移量
-    return beijingTime.toISOString().replace('Z', '+08:00');
-  } else if (format === 'simple') {
-    // 返回简单格式，用于post
-    return beijingTime.toISOString().replace('T', ' ').slice(0, 19);
+    return `${simple.replace(' ', 'T')}+08:00`;
   }
 
-  return beijingTime.toISOString();
+  return simple;
 }
 
 // 默认的frontmatter模板生成函数

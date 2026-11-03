@@ -1,538 +1,585 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Save, ArrowLeft, Eye, Image as ImageIcon, X, Clock } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Copy, Eye, ExternalLink, Image as ImageIcon, Save, Send, X } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { postsAPI, tagsAPI } from '../services/api'
 import MarkdownEditor from '../components/MarkdownEditor'
 import ImagePickerModal from '../components/ImagePickerModal'
 import AutoSaveIndicator from '../components/AutoSaveIndicator'
+import ConfirmDialog from '../components/ConfirmDialog'
+import TagSelector from '../components/TagSelector'
+import PreviewModal from '../components/PreviewModal'
+import RenameModal from '../components/RenameModal'
 import { useAutoSave } from '../hooks/useAutoSave'
-import toast from 'react-hot-toast'
+import { assetsAPI } from '../services/api'
+import {
+  formatDate,
+  formatDateTime,
+  formatForDateInput,
+  fromInputToPostDate,
+  toPostDate,
+} from '../utils/date'
+import { getPostPreviewUrl, toPublicPath } from '../utils/url'
+
+const LOCAL_DRAFT_KEY = 'cms:post-draft'
+
+const emptyPost = () => ({
+  title: '',
+  description: '',
+  body: '',
+  draft: true,
+  tags: [],
+  pinned: false,
+  coverImage: null,
+  publishDate: toPostDate(),
+})
+
+const buildPayload = (data) => ({
+  title: data.title.trim(),
+  description: data.description ?? '',
+  body: data.body ?? '',
+  draft: Boolean(data.draft),
+  tags: Array.isArray(data.tags) ? data.tags : [],
+  pinned: Boolean(data.pinned),
+  coverImage: data.coverImage?.src ? data.coverImage : null,
+  publishDate: data.publishDate || toPostDate(),
+})
 
 const PostEditor = () => {
   const params = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
-  // 格式化时间为Posts的简单格式 (YYYY-MM-DD HH:mm:ss)
-  const formatDateForPost = (date) => {
-    if (!date) return ''
-    const d = new Date(date)
-    if (isNaN(d.getTime())) return ''
-
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    const hours = String(d.getHours()).padStart(2, '0')
-    const minutes = String(d.getMinutes()).padStart(2, '0')
-    const seconds = String(d.getSeconds()).padStart(2, '0')
-
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-  }
-
-  // 将Posts的简单格式转换为datetime-local输入格式 (YYYY-MM-DDTHH:mm)
-  const formatDateForInput = (dateStr) => {
-    if (!dateStr) return ''
-    try {
-      // Posts格式: "2024-01-01 12:30:45"
-      const [datePart, timePart] = dateStr.split(' ')
-      if (!datePart || !timePart) return ''
-      const [hours, minutes] = timePart.split(':')
-      return `${datePart}T${hours}:${minutes}`
-    } catch (error) {
-      console.error('Error formatting date for input:', error)
-      return ''
-    }
-  }
-
-  // 从datetime-local输入格式转换为Posts的简单格式
-  const formatInputForPost = (inputValue) => {
-    if (!inputValue) return ''
-    try {
-      // 输入格式: "2024-01-01T12:30"
-      const date = new Date(inputValue)
-      return formatDateForPost(date)
-    } catch (error) {
-      console.error('Error formatting input for post:', error)
-      return ''
-    }
-  }
-
-  // 从路径中提取完整的ID
   const isNewPost = location.pathname === '/posts/new'
-  const id = isNewPost ? null : (params['*'] || location.pathname.replace('/posts/edit/', ''))
-  const isEditing = Boolean(id) && !isNewPost
+  const legacyId = params['*'] || location.pathname.replace('/posts/edit/', '')
+  const routeId = searchParams.get('id') || legacyId
+  const id = isNewPost ? null : decodeURIComponent(routeId)
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    body: '',
-    draft: true,
-    tags: [],
-    pinned: false,
-    coverImage: null, // { src: '', alt: '' }
-    publishDate: isNewPost ? formatDateForPost(new Date()) : '' // 新建时自动填充当前时间
-  })
-  const [originalPost, setOriginalPost] = useState(null) // 存储原始post数据用于比较
+  const [formData, setFormData] = useState(emptyPost)
+  const [baseline, setBaseline] = useState(null)
+  const [meta, setMeta] = useState({ filePath: '', updatedDate: null })
+  const [currentId, setCurrentId] = useState(id)
   const [availableTags, setAvailableTags] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(Boolean(id))
   const [saving, setSaving] = useState(false)
   const [showImagePicker, setShowImagePicker] = useState(false)
-  const [currentId, setCurrentId] = useState(id) // 跟踪当前的ID
-  const [isCreating, setIsCreating] = useState(false) // 标记是否正在创建新帖子
+  const [showPreview, setShowPreview] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
 
-  useEffect(() => {
-    loadAvailableTags()
-    if (isEditing && id) {
-      loadPost()
-    }
-  }, [isEditing, id])
+  const formRef = useRef(formData)
+  const currentIdRef = useRef(currentId)
+  formRef.current = formData
+  currentIdRef.current = currentId
 
-  const loadAvailableTags = async () => {
-    try {
-      const response = await tagsAPI.getAll()
-      setAvailableTags(response.data.map(tag => tag.name))
-    } catch (error) {
-      console.error('Error loading tags:', error)
-    }
-  }
+  const dirty = baseline !== null ? JSON.stringify(formData) !== baseline : Boolean(formData.title || formData.body)
 
-  const loadPost = async () => {
-    setLoading(true)
-    try {
-      const response = await postsAPI.getById(id)
-      const post = response.data
-      const postData = {
-        title: post.title || '',
-        description: post.description || '',
-        body: post.body || '',
-        draft: post.draft !== undefined ? post.draft : true,
-        tags: post.tags || [],
-        pinned: post.pinned || false,
-        coverImage: post.coverImage || null,
-        publishDate: post.publishDate || ''
-      }
-      setFormData(postData)
-      setOriginalPost(postData) // 保存原始数据用于比较
-    } catch (error) {
-      console.error('Error loading post:', error)
-      toast.error('加载Post失败')
-      navigate('/posts')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const autosave = useCallback(async (data) => {
+    if (!data.title?.trim()) return
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    if (!formData.title.trim()) {
-      toast.error('请输入标题')
+    const payload = buildPayload(data)
+
+    if (!currentIdRef.current) {
+      localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(payload))
       return
     }
 
-    setSaving(true)
-    try {
-      if (currentId) {
-        // 如果已经有ID，更新现有Post
-        await postsAPI.update(currentId, formData)
-        toast.success('Post更新成功')
-      } else if (!isCreating) {
-        // 如果没有ID且未在创建中，创建新Post
-        setIsCreating(true);
-        try {
-          const response = await postsAPI.create(formData)
-          toast.success('Post创建成功')
-        } finally {
-          setIsCreating(false);
+    await postsAPI.update(currentIdRef.current, payload)
+  }, [])
+
+  const { status, lastSaved, markSaved, reset } = useAutoSave({
+    data: formData,
+    onSave: autosave,
+    delay: 1800,
+    enabled: !loading && !saving,
+    shouldSave: (data) => Boolean(data.title?.trim() || data.body?.trim()),
+  })
+
+  const loadPost = useCallback(
+    async (postId) => {
+      setLoading(true)
+      try {
+        const response = await postsAPI.getById(postId)
+        const post = response.data
+        const nextData = {
+          title: post.title || '',
+          description: post.description || '',
+          body: post.body || '',
+          draft: post.draft !== undefined ? post.draft : true,
+          tags: post.tags || [],
+          pinned: Boolean(post.pinned),
+          coverImage: post.coverImage || null,
+          publishDate: post.publishDate || toPostDate(),
         }
-      } else {
-        // 如果正在创建中，等待创建完成后再处理
-        toast.success('Post已保存')
+        setFormData(nextData)
+        setBaseline(JSON.stringify(nextData))
+        reset(nextData)
+        setMeta({ filePath: post.filePath || '', updatedDate: post.updatedDate || null })
+        setCurrentId(postId)
+      } catch (error) {
+        console.error('Error loading post:', error)
+        toast.error('加载文章失败')
+        navigate('/posts', { replace: true })
+      } finally {
+        setLoading(false)
       }
-      navigate('/posts?filter=draft')
-    } catch (error) {
-      console.error('Error saving post:', error)
-      toast.error(currentId ? '更新Post失败' : '创建Post失败')
-    } finally {
-      setSaving(false)
+    },
+    [navigate, reset]
+  )
+
+  useEffect(() => {
+    tagsAPI
+      .getAll()
+      .then((response) => setAvailableTags(response.data.map((tag) => tag.name)))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!id) return
+    loadPost(id)
+  }, [id, loadPost])
+
+  useEffect(() => {
+    if (id) return
+
+    try {
+      const raw = localStorage.getItem(LOCAL_DRAFT_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (!parsed?.title?.trim() && !parsed?.body?.trim()) return
+
+      setFormData((previous) => ({ ...previous, ...parsed }))
+      setBaseline(null)
+      toast('已恢复上次未保存的本地草稿', { icon: '↩️' })
+    } catch {
+      localStorage.removeItem(LOCAL_DRAFT_KEY)
+    }
+  }, [id])
+
+  const handleSave = useCallback(
+    async ({ publish, silent = false } = {}) => {
+      if (!formRef.current.title?.trim()) {
+        toast.error('请先填写标题')
+        return null
+      }
+      if (formRef.current.title.trim().length > 60) {
+        toast.error('标题不能超过 60 个字符')
+        return null
+      }
+
+      setSaving(true)
+      try {
+        const payload = buildPayload({
+          ...formRef.current,
+          draft: publish === undefined ? formRef.current.draft : !publish,
+        })
+
+        let savedId = currentIdRef.current
+
+        if (savedId) {
+          await postsAPI.update(savedId, payload)
+        } else {
+          const response = await postsAPI.create(payload)
+          savedId = response.data.id
+          setCurrentId(savedId)
+          currentIdRef.current = savedId
+          localStorage.removeItem(LOCAL_DRAFT_KEY)
+          navigate(`/posts/edit?id=${encodeURIComponent(savedId)}`, { replace: true })
+        }
+
+        setFormData(payload)
+        setBaseline(JSON.stringify(payload))
+        markSaved(payload)
+        setMeta((previous) => ({
+          ...previous,
+          updatedDate: publish === undefined ? previous.updatedDate : new Date().toISOString(),
+        }))
+
+        if (!silent) {
+          if (publish === true) toast.success('文章已发布')
+          else if (publish === false) toast.success('已转为草稿')
+          else toast.success('已保存')
+        }
+
+        return savedId
+      } catch (error) {
+        console.error('Error saving post:', error)
+        toast.error('保存失败，请检查服务是否正常')
+        return null
+      } finally {
+        setSaving(false)
+      }
+    },
+    [markSaved, navigate]
+  )
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault()
+        handleSave()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handleSave])
+
+  useEffect(() => {
+    const onBeforeUnload = (event) => {
+      if (!dirty) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
+
+  const openInBlog = async () => {
+    const newWindow = window.open('', '_blank')
+    const savedId = await handleSave({ silent: true })
+    if (savedId) {
+      const url = getPostPreviewUrl(savedId)
+      if (newWindow) newWindow.location.href = url
+      else window.open(url, '_blank', 'noopener')
+    } else {
+      newWindow?.close()
     }
   }
 
-  const handleTagChange = (tagInput) => {
-    const tags = tagInput.split(',').map(tag => tag.trim()).filter(tag => tag)
-    setFormData(prev => ({ ...prev, tags }))
+  const handleBack = () => {
+    if (dirty) setLeaveOpen(true)
+    else navigate('/posts')
   }
 
-  const handleImageSelect = (imagePath) => {
-    setFormData(prev => ({
-      ...prev,
+  const setPublishDateNow = () => {
+    setFormData((previous) => ({ ...previous, publishDate: toPostDate() }))
+  }
+
+  const handleCoverSelect = (path) => {
+    setFormData((previous) => ({
+      ...previous,
       coverImage: {
-        src: imagePath,
-        alt: formData.title || '封面图'
-      }
+        src: toPublicPath(path),
+        alt: previous.title || '封面图',
+      },
     }))
     setShowImagePicker(false)
-    toast.success('封面图已选择')
   }
 
-  const handleRemoveCoverImage = () => {
-    setFormData(prev => ({ ...prev, coverImage: null }))
-    toast.success('封面图已移除')
+  const handleRename = async (newPath) => {
+    if (!currentId) return
+    await postsAPI.rename(currentId, { newPath })
+    toast.success('文件路径已更新')
+    navigate(`/posts/edit?id=${encodeURIComponent(newPath)}`, { replace: true })
   }
 
-  // 自动保存函数
-  const autoSaveFunction = useCallback(async (data) => {
-    // 只有在有标题或内容的情况下才自动保存
-    if (!data.title?.trim() && !data.body?.trim() && !data.description?.trim()) {
-      throw new Error('内容为空时不自动保存');
+  const copyPath = async () => {
+    const path = meta.filePath || (currentId ? `src/content/post/${currentId}` : '')
+    if (!path) return
+    try {
+      await navigator.clipboard.writeText(path)
+      toast.success('文件路径已复制')
+    } catch {
+      toast.error('复制失败')
     }
-
-    // 比较当前数据与原始数据，只有在有实际更改时才保存
-    const hasChanges = 
-      originalPost && (
-        data.title !== originalPost.title ||
-        data.description !== originalPost.description ||
-        data.body !== originalPost.body ||
-        data.draft !== originalPost.draft ||
-        JSON.stringify(data.tags) !== JSON.stringify(originalPost.tags) ||
-        data.pinned !== originalPost.pinned ||
-        JSON.stringify(data.coverImage) !== JSON.stringify(originalPost.coverImage)
-      );
-
-    // 如果是新帖子(没有原始数据)，直接保存
-    if (!originalPost) {
-      console.log('自动保存触发(新帖子):', { currentId, hasTitle: !!data.title?.trim() });
-      
-      if (currentId) {
-        // 已有ID，更新现有Post
-        console.log('更新现有Post:', currentId);
-        await postsAPI.update(currentId, data);
-        // 更新原始数据为当前数据
-        setOriginalPost({ ...data });
-      } else if (!isCreating) {
-        // 没有ID且未在创建中，创建新Post
-        console.log('创建新Post');
-        setIsCreating(true); // 设置创建状态，防止重复创建
-        try {
-          const response = await postsAPI.create(data);
-          const newPost = response.data;
-
-          // 更新URL和状态，切换到编辑模式
-          window.history.replaceState(null, '', `/posts/edit/${newPost.id}`);
-          setCurrentId(newPost.id);
-          // 更新原始数据
-          setOriginalPost({ ...data });
-          toast.success('Post已自动创建并保存');
-        } finally {
-          setIsCreating(false); // 重置创建状态
-        }
-      }
-      return;
-    }
-
-    if (!hasChanges) {
-      console.log('自动保存触发但无实际更改，跳过保存');
-      return; // 没有实际更改，不保存
-    }
-
-    console.log('自动保存触发:', { currentId, hasTitle: !!data.title?.trim(), hasChanges });
-
-    if (currentId) {
-      // 已有ID，更新现有Post
-      console.log('更新现有Post:', currentId);
-      await postsAPI.update(currentId, data);
-      // 更新原始数据为当前数据
-      setOriginalPost({ ...data });
-    } else if (!isCreating) {
-      // 没有ID，创建新Post
-      console.log('创建新Post');
-      setIsCreating(true); // 设置创建状态，防止重复创建
-      try {
-        const response = await postsAPI.create(data);
-        const newPost = response.data;
-
-        // 更新URL和状态，切换到编辑模式
-        window.history.replaceState(null, '', `/posts/edit/${newPost.id}`);
-        setCurrentId(newPost.id);
-        // 更新原始数据
-        setOriginalPost({ ...data });
-        toast.success('Post已自动创建并保存');
-      } finally {
-        setIsCreating(false); // 重置创建状态
-      }
-    }
-  }, [currentId, originalPost, isCreating]);
-
-  // 设置当前时间
-  const setCurrentTime = () => {
-    const now = new Date()
-    const formattedTime = formatDateForPost(now)
-    setFormData(prev => ({ ...prev, publishDate: formattedTime }))
   }
 
-  // 使用自动保存Hook
-  const { status: autoSaveStatus, lastSaved, forceSave } = useAutoSave({
-    saveFunction: autoSaveFunction,
-    data: formData,
-    delay: 3000, // 3秒延迟
-    enabled: !saving, // 只要不在手动保存就启用自动保存
-    onSaveSuccess: () => {
-      // 自动保存成功时的回调
-    },
-    onSaveError: (error) => {
-      console.error('Auto save failed:', error);
-    }
-  });
+  const tagSuggestions = useMemo(
+    () => Array.from(new Set([...availableTags, ...(formData.tags || [])])),
+    [availableTags, formData.tags]
+  )
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-4">
+        <div className="skeleton h-10 w-40" />
+        <div className="skeleton h-16 w-full" />
+        <div className="skeleton h-[520px] w-full" />
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigate('/posts')}
-              className="flex items-center text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              返回
-            </button>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {isEditing ? '编辑Post' : '新建Post'}
-            </h1>
-            {/* 自动保存状态指示器 */}
-            <AutoSaveIndicator
-              status={autoSaveStatus}
-              lastSaved={lastSaved}
-              onForceSave={forceSave}
-              className="ml-4"
-            />
-          </div>
-          <div className="flex items-center space-x-3">
-            <button
-              type="button"
-              onClick={() => setFormData(prev => ({ ...prev, draft: !prev.draft }))}
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                formData.draft
-                  ? 'bg-orange-100 text-orange-800'
-                  : 'bg-green-100 text-green-800'
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <button type="button" className="btn btn-ghost btn-sm -ml-2" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4" />
+            返回
+          </button>
+          <span className="text-slate-300">/</span>
+          <span className="text-sm font-medium text-slate-500">{currentId ? '编辑文章' : '新建文章'}</span>
+          <button
+            type="button"
+            onClick={() => handleSave({ publish: Boolean(formData.draft) })}
+            className={`badge ${
+              formData.draft
+                ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+            }`}
+            title={formData.draft ? '点击发布' : '点击转为草稿'}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                formData.draft ? 'bg-amber-500' : 'bg-emerald-500'
               }`}
-            >
-              {formData.draft ? '草稿' : '已发布'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="grid grid-cols-1 gap-6">
-            {/* 标题 */}
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                标题 *
-              </label>
-              <input
-                type="text"
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="输入Post标题"
-                required
-              />
-            </div>
-
-            {/* 描述 */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                描述
-              </label>
-              <textarea
-                id="description"
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="输入Post描述"
-              />
-            </div>
-
-            {/* 标签 */}
-            <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-                标签
-              </label>
-              <input
-                type="text"
-                id="tags"
-                value={formData.tags.join(', ')}
-                onChange={(e) => handleTagChange(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="输入标签，用逗号分隔"
-              />
-              {availableTags.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-500 mb-2">可用标签：</p>
-                  <div className="flex flex-wrap gap-2">
-                    {availableTags.map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => {
-                          if (!formData.tags.includes(tag)) {
-                            setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }))
-                          }
-                        }}
-                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200"
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 发布日期 */}
-            <div>
-              <label htmlFor="publishDate" className="block text-sm font-medium text-gray-700">
-                发布日期
-              </label>
-              <div className="mt-1 flex space-x-2">
-                <input
-                  type="datetime-local"
-                  id="publishDate"
-                  value={formatDateForInput(formData.publishDate)}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    publishDate: formatInputForPost(e.target.value)
-                  }))}
-                  className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={setCurrentTime}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  title="设置为当前时间"
-                >
-                  <Clock className="h-4 w-4" />
-                </button>
-              </div>
-              {formData.publishDate && (
-                <p className="mt-1 text-sm text-gray-500">
-                  格式: {formData.publishDate}
-                </p>
-              )}
-            </div>
-
-            {/* 封面图 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                封面图
-              </label>
-              {formData.coverImage ? (
-                <div className="relative inline-block">
-                  <img
-                    src={`/api/assets/preview/${formData.coverImage.src}`}
-                    alt={formData.coverImage.alt}
-                    className="w-32 h-24 object-cover rounded-lg border border-gray-300"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemoveCoverImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                  <div className="mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowImagePicker(true)}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      更换封面图
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowImagePicker(true)}
-                  className="flex items-center justify-center w-32 h-24 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors"
-                >
-                  <div className="text-center">
-                    <ImageIcon className="h-6 w-6 text-gray-400 mx-auto mb-1" />
-                    <span className="text-xs text-gray-500">选择封面图</span>
-                  </div>
-                </button>
-              )}
-            </div>
-
-            {/* 置顶 */}
-            <div className="flex items-center">
-              <input
-                id="pinned"
-                type="checkbox"
-                checked={formData.pinned}
-                onChange={(e) => setFormData(prev => ({ ...prev, pinned: e.target.checked }))}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="pinned" className="ml-2 block text-sm text-gray-900">
-                置顶文章
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* 内容编辑器 */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-4">
-            内容
-          </label>
-          <MarkdownEditor
-            value={formData.body}
-            onChange={(value) => setFormData(prev => ({ ...prev, body: value }))}
-            placeholder="开始写作..."
+            />
+            {formData.draft ? '草稿' : '已发布'}
+          </button>
+          <AutoSaveIndicator
+            status={status}
+            lastSaved={lastSaved}
+            dirty={dirty}
+            localDraft={!currentId}
+            className="hidden sm:inline-flex"
           />
         </div>
 
-        {/* 保存按钮 */}
-        <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={() => navigate('/posts')}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            取消
+        <div className="flex flex-wrap items-center gap-2">
+          <AutoSaveIndicator
+            status={status}
+            lastSaved={lastSaved}
+            dirty={dirty}
+            localDraft={!currentId}
+            className="sm:hidden"
+          />
+          <button type="button" className="btn btn-secondary btn-md" onClick={() => setShowPreview(true)}>
+            <Eye className="h-4 w-4" />
+            预览
           </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            {saving ? '保存中...' : '保存'}
+          <button type="button" className="btn btn-secondary btn-md" onClick={openInBlog}>
+            <ExternalLink className="h-4 w-4" />
+            在博客中打开
           </button>
+          {formData.draft && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-md"
+              disabled={saving}
+              onClick={() => handleSave({ publish: false })}
+            >
+              <Save className="h-4 w-4" />
+              保存草稿
+            </button>
+          )}
+          {formData.draft ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              disabled={saving}
+              onClick={() => handleSave({ publish: true })}
+            >
+              <Send className="h-4 w-4" />
+              {saving ? '发布中…' : '发布'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              disabled={saving}
+              onClick={() => handleSave()}
+            >
+              <Save className="h-4 w-4" />
+              {saving ? '保存中…' : '保存'}
+            </button>
+          )}
         </div>
-      </form>
+      </div>
 
-      {/* 图片选择器模态框 */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="card flex items-center gap-2 px-4 py-2">
+            <input
+              value={formData.title}
+              maxLength={60}
+              onChange={(event) =>
+                setFormData((previous) => ({ ...previous, title: event.target.value }))
+              }
+              placeholder="文章标题"
+              className="w-full border-0 bg-transparent text-2xl font-semibold tracking-tight text-slate-900 placeholder:text-slate-300 focus:outline-none sm:text-3xl"
+            />
+            {formData.title.length > 50 && (
+              <span className="shrink-0 text-xs text-slate-400">{formData.title.length}/60</span>
+            )}
+          </div>
+
+          <MarkdownEditor
+            value={formData.body}
+            onChange={(value) => setFormData((previous) => ({ ...previous, body: value }))}
+            onSave={() => handleSave()}
+            placeholder="开始写作… 支持 Markdown、拖拽或粘贴图片"
+            className="h-[68vh] min-h-[520px] xl:h-[calc(100vh-15.5rem)]"
+          />
+        </div>
+
+        <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+          <section className="card p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900">发布设置</h2>
+              {meta.updatedDate && (
+                <span className="text-[11px] text-slate-400">更新于 {formatDate(meta.updatedDate)}</span>
+              )}
+            </div>
+
+            <label className="mt-4 block text-xs font-medium text-slate-500" htmlFor="publishDate">
+              发布日期
+            </label>
+            <div className="mt-1.5 flex gap-2">
+              <input
+                id="publishDate"
+                type="datetime-local"
+                value={formatForDateInput(formData.publishDate)}
+                onChange={(event) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    publishDate: fromInputToPostDate(event.target.value),
+                  }))
+                }
+                className="input"
+              />
+              <button type="button" className="btn btn-secondary btn-sm shrink-0" onClick={setPublishDateNow}>
+                现在
+              </button>
+            </div>
+
+            <label className="mt-4 flex cursor-pointer items-center gap-2.5 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={formData.pinned}
+                onChange={(event) =>
+                  setFormData((previous) => ({ ...previous, pinned: event.target.checked }))
+                }
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              />
+              置顶文章
+            </label>
+          </section>
+
+          <section className="card p-5">
+            <h2 className="text-sm font-semibold text-slate-900">摘要与标签</h2>
+
+            <label className="mt-4 block text-xs font-medium text-slate-500" htmlFor="description">
+              摘要
+            </label>
+            <textarea
+              id="description"
+              rows={3}
+              value={formData.description}
+              onChange={(event) =>
+                setFormData((previous) => ({ ...previous, description: event.target.value }))
+              }
+              placeholder="列表页展示的一句话摘要"
+              className="input mt-1.5 resize-none"
+            />
+
+            <label className="mt-4 block text-xs font-medium text-slate-500">标签</label>
+            <div className="mt-1.5">
+              <TagSelector
+                value={formData.tags}
+                onChange={(tags) => setFormData((previous) => ({ ...previous, tags }))}
+                suggestions={tagSuggestions}
+              />
+            </div>
+          </section>
+
+          <section className="card p-5">
+            <h2 className="text-sm font-semibold text-slate-900">封面图</h2>
+            {formData.coverImage?.src ? (
+              <div className="mt-3">
+                <div className="relative overflow-hidden rounded-lg border border-slate-200">
+                  <img
+                    src={assetsAPI.preview(formData.coverImage.src)}
+                    alt={formData.coverImage.alt || '封面图'}
+                    className="h-36 w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData((previous) => ({ ...previous, coverImage: null }))}
+                    className="absolute right-2 top-2 rounded-full bg-slate-900/60 p-1 text-white hover:bg-slate-900/80"
+                    title="移除封面图"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowImagePicker(true)}
+                  className="btn btn-secondary btn-sm mt-2 w-full"
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  更换封面
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowImagePicker(true)}
+                className="mt-3 flex h-28 w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-slate-200 text-slate-400 transition-colors hover:border-brand-300 hover:bg-brand-50/40 hover:text-brand-600"
+              >
+                <ImageIcon className="h-6 w-6" />
+                <span className="text-xs">选择封面图</span>
+              </button>
+            )}
+          </section>
+
+          <section className="card px-5 py-4 text-xs text-slate-400">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate font-mono">{currentId || '保存后生成文件路径'}</span>
+              {currentId && (
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm px-2 py-1 text-[11px]"
+                    onClick={() => setRenameOpen(true)}
+                  >
+                    重命名
+                  </button>
+                  <button type="button" className="btn-icon p-1" onClick={copyPath} title="复制路径">
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+            {meta.updatedDate && (
+              <p className="mt-1.5">上次更新：{formatDateTime(meta.updatedDate)}</p>
+            )}
+          </section>
+        </aside>
+      </div>
+
       <ImagePickerModal
         isOpen={showImagePicker}
         onClose={() => setShowImagePicker(false)}
-        onSelectImage={handleImageSelect}
+        onSelectImage={handleCoverSelect}
+      />
+
+      <PreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        type="post"
+        data={{ ...formData, id: currentId }}
+      />
+
+      <RenameModal
+        isOpen={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        onRename={handleRename}
+        currentPath={currentId}
+        title={formData.title}
+        type="post"
+      />
+
+      <ConfirmDialog
+        open={leaveOpen}
+        title="离开编辑器？"
+        message="当前有未保存的修改，离开后这些修改会丢失。"
+        confirmLabel="离开"
+        onConfirm={() => {
+          setLeaveOpen(false)
+          navigate('/posts')
+        }}
+        onCancel={() => setLeaveOpen(false)}
       />
     </div>
   )

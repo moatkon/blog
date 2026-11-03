@@ -4,6 +4,54 @@ import matter from 'gray-matter';
 import { SUPPORTED_EXTENSIONS } from '../config.js';
 
 /**
+ * 把用户传入的相对路径限制在 baseDir 内，越界返回 null。
+ */
+export function resolveWithin(baseDir, userPath = '') {
+  const base = path.resolve(baseDir);
+  const target = path.resolve(base, userPath);
+
+  if (target !== base && !target.startsWith(base + path.sep)) {
+    return null;
+  }
+
+  return target;
+}
+
+/**
+ * 删除文件后清理空父目录，避免留下空的日期目录。
+ */
+export async function removeEmptyParents(filePath, baseDir) {
+  const base = path.resolve(baseDir);
+  let dir = path.dirname(path.resolve(filePath));
+
+  while (dir.startsWith(base + path.sep)) {
+    const entries = await fs.readdir(dir).catch(() => ['keep']);
+    if (entries.length > 0) break;
+
+    await fs.rmdir(dir);
+    dir = path.dirname(dir);
+  }
+}
+
+/**
+ * 在目录内生成不冲突的文件路径。
+ */
+export async function nextAvailablePath(dir, filename) {
+  const ext = path.extname(filename);
+  const base = path.basename(filename, ext);
+
+  let candidate = path.join(dir, filename);
+  let index = 1;
+
+  while (await fs.pathExists(candidate)) {
+    candidate = path.join(dir, `${base}-${index}${ext}`);
+    index += 1;
+  }
+
+  return candidate;
+}
+
+/**
  * 递归获取目录下所有markdown文件
  */
 export async function getAllMarkdownFiles(dir) {

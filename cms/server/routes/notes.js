@@ -2,44 +2,52 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs-extra';
 import { CONTENT_PATHS, getDefaultFrontmatter, getBeijingTime } from '../config.js';
-import { 
-  getAllMarkdownFiles, 
-  readMarkdownFile, 
-  writeMarkdownFile, 
-  deleteFile, 
-  generateFilePath 
+import {
+  getAllMarkdownFiles,
+  readMarkdownFile,
+  writeMarkdownFile,
+  deleteFile,
+  generateFilePath,
+  resolveWithin,
+  removeEmptyParents
 } from '../utils/fileUtils.js';
 
 const router = express.Router();
+
+function validateTitle(title) {
+  if (typeof title !== 'string' || !title.trim()) {
+    return '标题不能为空';
+  }
+  if (title.trim().length > 60) {
+    return '标题不能超过 60 个字符';
+  }
+  return null;
+}
 
 // 获取所有notes
 router.get('/', async (req, res) => {
   try {
     const files = await getAllMarkdownFiles(CONTENT_PATHS.notes);
     const notes = [];
-    
+
     for (const file of files) {
       const note = await readMarkdownFile(file);
-      if (note) {
-        const relativePath = path.relative(CONTENT_PATHS.notes, file);
-        // 将文件系统时间戳转换为北京时间
-        const createdAt = new Date(note.stats.birthtime.getTime() + (8 * 60 * 60 * 1000));
-        const modifiedAt = new Date(note.stats.mtime.getTime() + (8 * 60 * 60 * 1000));
+      if (!note) continue;
 
-        notes.push({
-          id: relativePath.replace(/\\/g, '/'),
-          ...note.frontmatter,
-          body: note.body,
-          filePath: file,
-          createdAt: createdAt.toISOString(),
-          modifiedAt: modifiedAt.toISOString()
-        });
-      }
+      const relativePath = path.relative(CONTENT_PATHS.notes, file);
+
+      notes.push({
+        id: relativePath.replace(/\\/g, '/'),
+        ...note.frontmatter,
+        body: note.body,
+        filePath: file,
+        createdAt: note.stats.birthtime.toISOString(),
+        modifiedAt: note.stats.mtime.toISOString()
+      });
     }
-    
-    // 按发布日期排序
+
     notes.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
-    
+
     res.json(notes);
   } catch (error) {
     console.error('Error fetching notes:', error);
@@ -50,13 +58,18 @@ router.get('/', async (req, res) => {
 // 获取单个note
 router.get('/:id(*)', async (req, res) => {
   try {
-    const filePath = path.join(CONTENT_PATHS.notes, req.params.id);
+    const filePath = resolveWithin(CONTENT_PATHS.notes, req.params.id);
+
+    if (!filePath) {
+      return res.status(400).json({ error: 'Invalid note path' });
+    }
+
     const note = await readMarkdownFile(filePath);
-    
+
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
-    
+
     res.json({
       id: req.params.id,
       ...note.frontmatter,
@@ -73,34 +86,30 @@ router.get('/:id(*)', async (req, res) => {
 router.put('/:id(*)/rename', async (req, res) => {
   try {
     const { newPath } = req.body;
-    
+
     if (!newPath) {
       return res.status(400).json({ error: 'New path is required' });
     }
 
-    const oldFilePath = path.join(CONTENT_PATHS.notes, req.params.id);
-    
-    // 检查原始文件是否存在
-    if (!await fs.pathExists(oldFilePath)) {
+    const oldFilePath = resolveWithin(CONTENT_PATHS.notes, req.params.id);
+    const newFilePath = resolveWithin(CONTENT_PATHS.notes, newPath);
+
+    if (!oldFilePath || !newFilePath) {
+      return res.status(400).json({ error: 'Invalid note path' });
+    }
+    if (!(await fs.pathExists(oldFilePath))) {
       return res.status(404).json({ error: 'Note not found' });
     }
-
-    const newFilePath = path.join(CONTENT_PATHS.notes, newPath);
-
-    // 检查目标路径是否已存在
     if (await fs.pathExists(newFilePath)) {
       return res.status(409).json({ error: 'New path already exists' });
     }
 
-    // 确保目标目录存在
     await fs.ensureDir(path.dirname(newFilePath));
-
-    // 重命名文件
     await fs.move(oldFilePath, newFilePath);
 
-    res.json({ 
+    res.json({
       message: 'Note path updated successfully',
-      newPath: newPath,
+      newPath,
       oldPath: req.params.id
     });
   } catch (error) {
@@ -113,35 +122,32 @@ router.put('/:id(*)/rename', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { title, description, body, publishDate } = req.body;
-    
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
+
+    const titleError = validateTitle(title);
+    if (titleError) {
+      return res.status(400).json({ error: titleError });
     }
-    
+
     const frontmatter = {
       ...getDefaultFrontmatter('note'),
-      title,
-      description: description !== undefined ? description : ''
+      title: title.trim(),
+      description: description !== undefined ? String(description) : '',
+      publishDate: publishDate ? String(publishDate) : getBeijingTime('iso')
     };
 
-    // 如果提供了publishDate，使用它；否则使用默认值
-    if (publishDate) {
-      frontmatter.publishDate = publishDate;
+    const filePath = await generateFilePath(CONTENT_PATHS.notes, 'note', frontmatter.title);
+    const success = await writeMarkdownFile(filePath, frontmatter, String(body || ''));
+
+    if (!success) {
+      return res.status(500).json({ error: 'Failed to create note' });
     }
-    
-    const filePath = await generateFilePath(CONTENT_PATHS.notes, 'note', title);
-    const success = await writeMarkdownFile(filePath, frontmatter, body || '');
-    
-    if (success) {
-      const relativePath = path.relative(CONTENT_PATHS.notes, filePath);
-      res.json({ 
-        id: relativePath.replace(/\\/g, '/'),
-        message: 'Note created successfully',
-        filePath
-      });
-    } else {
-      res.status(500).json({ error: 'Failed to create note' });
-    }
+
+    const relativePath = path.relative(CONTENT_PATHS.notes, filePath);
+    res.status(201).json({
+      id: relativePath.replace(/\\/g, '/'),
+      message: 'Note created successfully',
+      filePath
+    });
   } catch (error) {
     console.error('Error creating note:', error);
     res.status(500).json({ error: 'Failed to create note' });
@@ -151,49 +157,56 @@ router.post('/', async (req, res) => {
 // 更新note
 router.put('/:id(*)', async (req, res) => {
   try {
-    const filePath = path.join(CONTENT_PATHS.notes, req.params.id);
+    const filePath = resolveWithin(CONTENT_PATHS.notes, req.params.id);
+
+    if (!filePath) {
+      return res.status(400).json({ error: 'Invalid note path' });
+    }
+
     const existingNote = await readMarkdownFile(filePath);
-    
     if (!existingNote) {
       return res.status(404).json({ error: 'Note not found' });
     }
-    
-    const { title, description, body, publishDate } = req.body;
-    
-    // 检查是否有实际更改
-    const hasChanges =
-      (title && title !== existingNote.frontmatter.title) ||
-      (description !== undefined && description !== existingNote.frontmatter.description) ||
-      (publishDate !== undefined && publishDate !== existingNote.frontmatter.publishDate) ||
-      (body !== undefined && body !== existingNote.body);
 
-    if (!hasChanges) {
-      // 没有实际更改，直接返回成功而不更新文件
-      return res.json({ message: 'No changes detected, note not updated' });
+    const { title, description, body, publishDate } = req.body;
+
+    if (title !== undefined) {
+      const titleError = validateTitle(title);
+      if (titleError) {
+        return res.status(400).json({ error: titleError });
+      }
     }
-    
+
     const updatedFrontmatter = {
       ...existingNote.frontmatter,
-      title: title || existingNote.frontmatter.title,
-      description: description !== undefined ? description : existingNote.frontmatter.description
+      title: title !== undefined ? title.trim() : existingNote.frontmatter.title,
+      description:
+        description !== undefined ? String(description) : existingNote.frontmatter.description
     };
 
-    // 如果提供了publishDate，更新它
     if (publishDate !== undefined) {
-      updatedFrontmatter.publishDate = publishDate;
+      updatedFrontmatter.publishDate = String(publishDate);
     }
-    
-    const success = await writeMarkdownFile(
-      filePath, 
-      updatedFrontmatter, 
-      body !== undefined ? body : existingNote.body
-    );
-    
-    if (success) {
-      res.json({ message: 'Note updated successfully' });
-    } else {
-      res.status(500).json({ error: 'Failed to update note' });
+
+    const nextBody = body !== undefined ? String(body) : existingNote.body;
+
+    const hasChanges =
+      updatedFrontmatter.title !== existingNote.frontmatter.title ||
+      updatedFrontmatter.description !== existingNote.frontmatter.description ||
+      String(updatedFrontmatter.publishDate) !== String(existingNote.frontmatter.publishDate) ||
+      nextBody !== existingNote.body;
+
+    if (!hasChanges) {
+      return res.json({ message: 'No changes detected' });
     }
+
+    const success = await writeMarkdownFile(filePath, updatedFrontmatter, nextBody);
+
+    if (!success) {
+      return res.status(500).json({ error: 'Failed to update note' });
+    }
+
+    res.json({ message: 'Note updated successfully' });
   } catch (error) {
     console.error('Error updating note:', error);
     res.status(500).json({ error: 'Failed to update note' });
@@ -203,10 +216,19 @@ router.put('/:id(*)', async (req, res) => {
 // 删除note
 router.delete('/:id(*)', async (req, res) => {
   try {
-    const filePath = path.join(CONTENT_PATHS.notes, req.params.id);
+    const filePath = resolveWithin(CONTENT_PATHS.notes, req.params.id);
+
+    if (!filePath) {
+      return res.status(400).json({ error: 'Invalid note path' });
+    }
+    if (!(await fs.pathExists(filePath))) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
     const success = await deleteFile(filePath);
-    
+
     if (success) {
+      await removeEmptyParents(filePath, CONTENT_PATHS.notes);
       res.json({ message: 'Note deleted successfully' });
     } else {
       res.status(500).json({ error: 'Failed to delete note' });

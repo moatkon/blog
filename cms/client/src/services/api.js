@@ -1,50 +1,49 @@
 import axios from 'axios'
+import { assetApiPath } from '../utils/url'
 
 const api = axios.create({
   baseURL: '/api',
-  timeout: 10000
+  timeout: 20000
 })
 
-// Posts API
+const encodeId = (id) =>
+  String(id)
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/')
+
+const resource = (base) => ({
+  getAll: () => api.get(base),
+  getById: (id) => api.get(`${base}/${encodeId(id)}`),
+  create: (data) => api.post(base, data),
+  update: (id, data) => api.put(`${base}/${encodeId(id)}`, data),
+  delete: (id) => api.delete(`${base}/${encodeId(id)}`)
+})
+
 export const postsAPI = {
-  getAll: () => api.get('/posts'),
-  getById: (id) => api.get(`/posts/${id}`),
-  create: (data) => api.post('/posts', data),
-  update: (id, data) => api.put(`/posts/${id}`, data),
-  delete: (id) => api.delete(`/posts/${id}`),
-  rename: (id, data) => api.put(`/posts/${id}/rename`, data)
+  ...resource('/posts'),
+  rename: (id, data) => api.put(`/posts/${encodeId(id)}/rename`, data)
 }
 
-// Notes API
 export const notesAPI = {
-  getAll: () => api.get('/notes'),
-  getById: (id) => api.get(`/notes/${id}`),
-  create: (data) => api.post('/notes', data),
-  update: (id, data) => api.put(`/notes/${id}`, data),
-  delete: (id) => api.delete(`/notes/${id}`),
-  rename: (id, data) => api.put(`/notes/${id}/rename`, data)
+  ...resource('/notes'),
+  rename: (id, data) => api.put(`/notes/${encodeId(id)}/rename`, data)
 }
 
-// Tags API
-export const tagsAPI = {
-  getAll: () => api.get('/tags'),
-  getById: (id) => api.get(`/tags/${id}`),
-  create: (data) => api.post('/tags', data),
-  update: (id, data) => api.put(`/tags/${id}`, data),
-  delete: (id) => api.delete(`/tags/${id}`)
-}
+export const tagsAPI = resource('/tags')
 
-// Assets API
 export const assetsAPI = {
   getAll: () => api.get('/assets'),
-  getFolder: (path) => api.get(`/assets/folder/${path}`),
-  upload: (formData) => api.post('/assets/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  getFolder: (path) => api.get(`/assets/folder/${assetApiPath(path)}`),
+  upload: (formData) =>
+    api.post('/assets/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000
+    }),
   createFolder: (data) => api.post('/assets/folder', data),
   rename: (oldPath, newName) => api.put('/assets/rename', { oldPath, newName }),
-  delete: (path) => api.delete(`/assets/${path}`),
-  preview: (path) => `/api/assets/preview/${path}`
+  delete: (path) => api.delete(`/assets/${assetApiPath(path)}`),
+  preview: (path) => `/api/assets/preview/${assetApiPath(path)}`
 }
 
 export default api

@@ -1,8 +1,10 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
+import os from 'os';
 import fs from 'fs-extra';
 import { CONTENT_PATHS, IMAGE_PROCESSING_CONFIG } from '../config.js';
+import { resolveWithin, nextAvailablePath } from '../utils/fileUtils.js';
 import {
   stripImageMetadata,
   isSupportedImageFormat,
@@ -12,19 +14,46 @@ import {
 
 const router = express.Router();
 
-// 配置multer用于文件上传
+function decodeOriginalName(name) {
+  if (!name) return 'file';
+
+  // multer 1.x 按 latin1 解码上传文件名，中文名会乱码
+  if (/[^\x00-\xff]/.test(name)) return name;
+
+  const decoded = Buffer.from(name, 'latin1').toString('utf8');
+  return decoded.includes('�') ? name : decoded;
+}
+
+function sanitizeFilename(name) {
+  const ext = path.extname(name);
+  let base = path
+    .basename(name, ext)
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  if (!base || base === '.' || base === '..') {
+    base = `file-${Date.now()}`;
+  }
+
+  return `${base}${ext.toLowerCase()}`;
+}
+
+function sanitizeFolderName(name) {
+  const value = String(name || '').trim();
+
+  if (!value || value === '.' || value === '..') return null;
+  if (/[<>:"/\\|?*\u0000-\u001f]/.test(value)) return null;
+
+  return value;
+}
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // 在multer中获取字段值的另一种方式
-    // 使用一个自定义的字段解析器来 extract fields from multipart data
-    // 但我们需要 to wait for the fields to be parsed first
-    cb(null, CONTENT_PATHS.assets); // 默认先上传到assets目录，然后在路由中移动到正确位置
-  },
+  destination: (req, file, cb) => cb(null, os.tmpdir()),
   filename: (req, file, cb) => {
-    // 保持原文件名，如果有重复则添加时间戳
-    const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext);
-    cb(null, `${name}${ext}`);
+    const ext = path.extname(decodeOriginalName(file.originalname)).toLowerCase();
+    cb(null, `cms-${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`);
   }
 });
 
@@ -34,21 +63,22 @@ const upload = multer({
     fileSize: IMAGE_PROCESSING_CONFIG.maxFileSize
   },
   fileFilter: (req, file, cb) => {
-    // 检查文件类型
-    const isImage = file.mimetype.startsWith('image/');
-    if (isImage && !isSupportedImageFormat(file.originalname)) {
-      return cb(new Error(`Unsupported image format: ${path.extname(file.originalname)}`));
-    }
     cb(null, true);
   }
 });
 
 // 上传文件
 router.post('/upload', (req, res) => {
-  upload.single('file')(req, res, async (err) => {
-    if (err) {
-      console.error('Error uploading file:', err);
-      return res.status(500).json({ error: 'Failed to upload file' });
+  upload.single('file')(req, res, async (error) => {
+    if (error) {
+      if (req.file?.path) await fs.remove(req.file.path);
+      const status = error.code === 'LIMIT_FILE_SIZE' ? 413 : 500;
+      return res.status(status).json({
+        error:
+          error.code === 'LIMIT_FILE_SIZE'
+            ? `文件超过 ${IMAGE_PROCESSING_CONFIG.maxFileSize / 1024 / 1024}MB 限制`
+            : 'Failed to upload file'
+      });
     }
 
     if (!req.file) {
@@ -56,40 +86,38 @@ router.post('/upload', (req, res) => {
     }
 
     try {
-      // 获取folder参数
-      const folder = req.body.folder || '';
+      const folder = String(req.body.folder || '').trim();
+      const targetDir = resolveWithin(CONTENT_PATHS.assets, folder);
 
-      // 如果指定了文件夹，则将文件移动到正确位置
-      if (folder) {
-        const targetDir = path.join(CONTENT_PATHS.assets, folder);
-        await fs.ensureDir(targetDir);
-
-        const targetPath = path.join(targetDir, req.file.filename);
-        await fs.move(req.file.path, targetPath);
-
-        // 更新文件路径信息
-        req.file.path = targetPath;
-        req.file.destination = targetDir;
+      if (!targetDir) {
+        await fs.remove(req.file.path);
+        return res.status(403).json({ error: 'Access denied' });
       }
+
+      await fs.ensureDir(targetDir);
+
+      const originalName = sanitizeFilename(decodeOriginalName(req.file.originalname));
+      const targetPath = await nextAvailablePath(targetDir, originalName);
+
+      await fs.move(req.file.path, targetPath);
+      req.file.path = targetPath;
+      req.file.destination = targetDir;
+      req.file.filename = path.basename(targetPath);
 
       let processingResult = null;
       let privacyCheck = null;
-
-      // 检查是否为图片文件，如果是则进行处理
       const isImage = req.file.mimetype.startsWith('image/');
-      if (isImage && isSupportedImageFormat(req.file.path)) {
 
-        // 隐私检查
+      if (isImage && isSupportedImageFormat(targetPath)) {
         if (IMAGE_PROCESSING_CONFIG.enablePrivacyCheck) {
-          privacyCheck = await checkImagePrivacy(req.file.path);
+          privacyCheck = await checkImagePrivacy(targetPath);
           if (IMAGE_PROCESSING_CONFIG.enableLogging && privacyCheck.hasSensitiveData) {
             console.warn(`Privacy issues detected in uploaded image ${req.file.filename}:`, privacyCheck.issues);
           }
         }
 
-        // 抹除元信息
         if (IMAGE_PROCESSING_CONFIG.enableMetadataStripping) {
-          processingResult = await stripImageMetadata(req.file.path, null, {
+          processingResult = await stripImageMetadata(targetPath, null, {
             quality: IMAGE_PROCESSING_CONFIG.quality,
             progressive: IMAGE_PROCESSING_CONFIG.progressive,
             optimizeForWeb: IMAGE_PROCESSING_CONFIG.optimizeForWeb
@@ -97,36 +125,25 @@ router.post('/upload', (req, res) => {
 
           if (!processingResult.success) {
             console.error('Failed to process image metadata:', processingResult.error);
-            // 继续处理，不因为元数据处理失败而中断上传
-          } else if (IMAGE_PROCESSING_CONFIG.enableLogging) {
-            console.log(`Image metadata stripped for ${req.file.filename}:`, {
-              compressionRatio: processingResult.compressionRatio,
-              exifRemoved: processingResult.exifRemoved.exifRemoved
-            });
-          }
-
-          // 更新文件大小信息
-          if (processingResult.success) {
-            const newStats = await fs.stat(req.file.path);
+          } else {
+            const newStats = await fs.stat(targetPath);
             req.file.size = newStats.size;
           }
         }
       }
 
-      const relativePath = path.relative(CONTENT_PATHS.assets, req.file.path);
+      const relativePath = path.relative(CONTENT_PATHS.assets, targetPath).replace(/\\/g, '/');
 
-      // 构建响应数据
       const responseData = {
         message: 'File uploaded successfully',
         file: {
           name: req.file.filename,
-          path: relativePath.replace(/\\\\/g, '/'),
+          path: relativePath,
           size: req.file.size,
           mimetype: req.file.mimetype
         }
       };
 
-      // 添加图片处理信息（如果有的话）
       if (isImage && processingResult) {
         responseData.imageProcessing = {
           metadataStripped: processingResult.success && processingResult.exifRemoved.exifRemoved,
@@ -136,7 +153,6 @@ router.post('/upload', (req, res) => {
         };
       }
 
-      // 添加隐私检查信息（如果有的话）
       if (privacyCheck) {
         responseData.privacyCheck = {
           hadSensitiveData: privacyCheck.hasSensitiveData,
@@ -146,12 +162,9 @@ router.post('/upload', (req, res) => {
       }
 
       res.json(responseData);
-    } catch (error) {
-      console.error('Error processing uploaded file:', error);
-      // 如果处理失败，删除已上传的文件
-      if (req.file && req.file.path) {
-        await fs.remove(req.file.path);
-      }
+    } catch (uploadError) {
+      console.error('Error processing uploaded file:', uploadError);
+      if (req.file?.path) await fs.remove(req.file.path);
       res.status(500).json({ error: 'Failed to process uploaded file' });
     }
   });
@@ -160,23 +173,25 @@ router.post('/upload', (req, res) => {
 // 递归获取目录结构
 async function getDirectoryStructure(dir, basePath = '') {
   const items = [];
-  
-  if (!await fs.pathExists(dir)) {
+
+  if (!(await fs.pathExists(dir))) {
     return items;
   }
-  
+
   const entries = await fs.readdir(dir, { withFileTypes: true });
-  
+
   for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+
     const fullPath = path.join(dir, entry.name);
     const relativePath = path.join(basePath, entry.name);
-    
+
     if (entry.isDirectory()) {
       const children = await getDirectoryStructure(fullPath, relativePath);
       items.push({
         name: entry.name,
         type: 'directory',
-        path: relativePath,
+        path: relativePath.split(path.sep).join('/'),
         children
       });
     } else {
@@ -184,7 +199,7 @@ async function getDirectoryStructure(dir, basePath = '') {
       items.push({
         name: entry.name,
         type: 'file',
-        path: relativePath,
+        path: relativePath.split(path.sep).join('/'),
         size: stats.size,
         createdAt: stats.birthtime,
         modifiedAt: stats.mtime,
@@ -192,7 +207,7 @@ async function getDirectoryStructure(dir, basePath = '') {
       });
     }
   }
-  
+
   return items.sort((a, b) => {
     if (a.type !== b.type) {
       return a.type === 'directory' ? -1 : 1;
@@ -216,13 +231,12 @@ router.get('/', async (req, res) => {
 router.get('/folder/*', async (req, res) => {
   try {
     const folderPath = req.params[0];
-    const fullPath = path.join(CONTENT_PATHS.assets, folderPath);
-    
-    // 安全检查，确保路径在assets目录内
-    if (!fullPath.startsWith(CONTENT_PATHS.assets)) {
+    const fullPath = resolveWithin(CONTENT_PATHS.assets, folderPath);
+
+    if (!fullPath) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    
+
     const structure = await getDirectoryStructure(fullPath, folderPath);
     res.json(structure);
   } catch (error) {
@@ -231,23 +245,18 @@ router.get('/folder/*', async (req, res) => {
   }
 });
 
-
-
 // 检查图片隐私信息
 router.get('/privacy-check/:path(*)', async (req, res) => {
   try {
     const filePath = req.params.path;
-    const fullPath = path.join(CONTENT_PATHS.assets, filePath);
+    const fullPath = resolveWithin(CONTENT_PATHS.assets, filePath);
 
-    // 安全检查
-    if (!fullPath.startsWith(CONTENT_PATHS.assets)) {
+    if (!fullPath) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
-    if (!await fs.pathExists(fullPath)) {
+    if (!(await fs.pathExists(fullPath))) {
       return res.status(404).json({ error: 'File not found' });
     }
-
     if (!isSupportedImageFormat(fullPath)) {
       return res.status(400).json({ error: 'File is not a supported image format' });
     }
@@ -270,25 +279,28 @@ router.get('/privacy-check/:path(*)', async (req, res) => {
 router.post('/strip-metadata/:path(*)', async (req, res) => {
   try {
     const filePath = req.params.path;
-    const fullPath = path.join(CONTENT_PATHS.assets, filePath);
+    const fullPath = resolveWithin(CONTENT_PATHS.assets, filePath);
 
-    // 安全检查
-    if (!fullPath.startsWith(CONTENT_PATHS.assets)) {
+    if (!fullPath) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
-    if (!await fs.pathExists(fullPath)) {
+    if (!(await fs.pathExists(fullPath))) {
       return res.status(404).json({ error: 'File not found' });
     }
-
     if (!isSupportedImageFormat(fullPath)) {
       return res.status(400).json({ error: 'File is not a supported image format' });
     }
 
     const options = {
       quality: req.body.quality || IMAGE_PROCESSING_CONFIG.quality,
-      progressive: req.body.progressive !== undefined ? req.body.progressive : IMAGE_PROCESSING_CONFIG.progressive,
-      optimizeForWeb: req.body.optimizeForWeb !== undefined ? req.body.optimizeForWeb : IMAGE_PROCESSING_CONFIG.optimizeForWeb
+      progressive:
+        req.body.progressive !== undefined
+          ? req.body.progressive
+          : IMAGE_PROCESSING_CONFIG.progressive,
+      optimizeForWeb:
+        req.body.optimizeForWeb !== undefined
+          ? req.body.optimizeForWeb
+          : IMAGE_PROCESSING_CONFIG.optimizeForWeb
     };
 
     const result = await stripImageMetadata(fullPath, null, options);
@@ -314,21 +326,21 @@ router.post('/strip-metadata/:path(*)', async (req, res) => {
 router.post('/folder', async (req, res) => {
   try {
     const { name, parent = '' } = req.body;
-    
-    if (!name) {
-      return res.status(400).json({ error: 'Folder name is required' });
+    const folderName = sanitizeFolderName(name);
+
+    if (!folderName) {
+      return res.status(400).json({ error: '文件夹名称不合法' });
     }
-    
-    const folderPath = path.join(CONTENT_PATHS.assets, parent, name);
-    
-    // 安全检查
-    if (!folderPath.startsWith(CONTENT_PATHS.assets)) {
+
+    const parentDir = resolveWithin(CONTENT_PATHS.assets, parent);
+    if (!parentDir) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    
+
+    const folderPath = path.join(parentDir, folderName);
     await fs.ensureDir(folderPath);
-    
-    res.json({ 
+
+    res.json({
       message: 'Folder created successfully',
       path: path.relative(CONTENT_PATHS.assets, folderPath).replace(/\\/g, '/')
     });
@@ -347,42 +359,38 @@ router.put('/rename', async (req, res) => {
       return res.status(400).json({ error: '缺少必要参数' });
     }
 
-    const oldFullPath = path.join(CONTENT_PATHS.assets, oldPath);
-    const parentDir = path.dirname(oldFullPath);
-    const newFullPath = path.join(parentDir, newName);
-
-    // 安全检查
-    if (!oldFullPath.startsWith(CONTENT_PATHS.assets) || !newFullPath.startsWith(CONTENT_PATHS.assets)) {
-      return res.status(403).json({ error: 'Access denied' });
+    const trimmedName = String(newName).trim();
+    if (!trimmedName || trimmedName === '.' || trimmedName === '..' || /[<>:"/\\|?*\u0000-\u001f]/.test(trimmedName)) {
+      return res.status(400).json({ error: '文件名不合法' });
     }
 
-    // 检查原文件是否存在
-    if (!await fs.pathExists(oldFullPath)) {
+    const oldFullPath = resolveWithin(CONTENT_PATHS.assets, oldPath);
+
+    if (!oldFullPath || oldFullPath === CONTENT_PATHS.assets) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!(await fs.pathExists(oldFullPath))) {
       return res.status(404).json({ error: '原文件不存在' });
     }
 
-    // 检查新文件名是否已存在
+    const newFullPath = path.join(path.dirname(oldFullPath), trimmedName);
+
+    if (!resolveWithin(CONTENT_PATHS.assets, path.relative(CONTENT_PATHS.assets, newFullPath))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     if (await fs.pathExists(newFullPath)) {
       return res.status(409).json({ error: '目标文件名已存在' });
     }
 
-    // 验证文件名（不能包含特殊字符）
-    const invalidChars = /[<>:"/\\|?*]/;
-    if (invalidChars.test(newName)) {
-      return res.status(400).json({ error: '文件名包含无效字符' });
-    }
-
-    // 执行重命名
     await fs.move(oldFullPath, newFullPath);
 
-    // 返回新的文件信息
     const stats = await fs.stat(newFullPath);
     const newPath = path.relative(CONTENT_PATHS.assets, newFullPath).replace(/\\/g, '/');
 
     res.json({
       message: '重命名成功',
-      newPath: newPath,
-      name: newName,
+      newPath,
+      name: trimmedName,
       type: stats.isDirectory() ? 'directory' : 'file',
       size: stats.isDirectory() ? undefined : stats.size,
       modifiedAt: stats.mtime.toISOString()
@@ -397,15 +405,17 @@ router.put('/rename', async (req, res) => {
 router.delete('/*', async (req, res) => {
   try {
     const itemPath = req.params[0];
-    const fullPath = path.join(CONTENT_PATHS.assets, itemPath);
-    
-    // 安全检查
-    if (!fullPath.startsWith(CONTENT_PATHS.assets)) {
+    const fullPath = resolveWithin(CONTENT_PATHS.assets, itemPath);
+
+    if (!fullPath || fullPath === CONTENT_PATHS.assets) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    
+    if (!(await fs.pathExists(fullPath))) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
     await fs.remove(fullPath);
-    
+
     res.json({ message: 'Item deleted successfully' });
   } catch (error) {
     console.error('Error deleting item:', error);
@@ -417,23 +427,20 @@ router.delete('/*', async (req, res) => {
 router.get('/preview/*', async (req, res) => {
   try {
     const filePath = req.params[0];
-    const fullPath = path.join(CONTENT_PATHS.assets, filePath);
-    
-    // 安全检查
-    if (!fullPath.startsWith(CONTENT_PATHS.assets)) {
+    const fullPath = resolveWithin(CONTENT_PATHS.assets, filePath);
+
+    if (!fullPath) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    
-    if (!await fs.pathExists(fullPath)) {
+    if (!(await fs.pathExists(fullPath))) {
       return res.status(404).json({ error: 'File not found' });
     }
-    
+
     const stats = await fs.stat(fullPath);
     if (stats.isDirectory()) {
       return res.status(400).json({ error: 'Cannot preview directory' });
     }
-    
-    // 设置适当的Content-Type
+
     const ext = path.extname(fullPath).toLowerCase();
     const mimeTypes = {
       '.jpg': 'image/jpeg',
@@ -442,14 +449,22 @@ router.get('/preview/*', async (req, res) => {
       '.gif': 'image/gif',
       '.svg': 'image/svg+xml',
       '.webp': 'image/webp',
-      '.txt': 'text/plain',
-      '.md': 'text/markdown',
-      '.json': 'application/json'
+      '.avif': 'image/avif',
+      '.bmp': 'image/bmp',
+      '.txt': 'text/plain; charset=utf-8',
+      '.md': 'text/markdown; charset=utf-8',
+      '.json': 'application/json; charset=utf-8',
+      '.pdf': 'application/pdf',
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.mp3': 'audio/mpeg',
+      '.woff': 'font/woff',
+      '.woff2': 'font/woff2'
     };
-    
-    const mimeType = mimeTypes[ext] || 'application/octet-stream';
-    res.setHeader('Content-Type', mimeType);
-    
+
+    res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
     const fileStream = fs.createReadStream(fullPath);
     fileStream.pipe(res);
   } catch (error) {

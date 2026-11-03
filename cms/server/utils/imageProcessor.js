@@ -6,7 +6,7 @@ import path from 'path';
 /**
  * 支持的图片格式
  */
-const SUPPORTED_IMAGE_FORMATS = ['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.tif'];
+const SUPPORTED_IMAGE_FORMATS = ['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.tif', '.avif'];
 
 /**
  * 检查文件是否为支持的图片格式

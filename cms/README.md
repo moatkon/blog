@@ -1,197 +1,178 @@
 # Blog CMS 内容管理系统
 
-这是一个为你的Blog项目开发的内容管理系统(CMS)，可以方便地管理Posts、Notes、Tags和静态资源。
+为 Moatkon Blog 开发的本地内容管理系统，直接读写 `src/content` 与 `public`，不需要数据库。
 
-## 功能特性
+## 功能
 
-### 📝 Posts管理
-- 创建、编辑、删除博客文章
-- 草稿状态管理
-- 自动更新updatedDate字段
-- 标签管理和分类
-- 文章置顶功能
-- 实时Markdown预览
+### 写作
 
-### 📓 Notes管理
-- 创建、编辑、删除笔记
-- 简洁的笔记界面
-- Markdown支持
-- 按时间排序
+- 编辑 / 分屏 / 预览三种模式，预览样式接近博客正文
+- Markdown 工具栏、快捷键、字数与阅读时长统计、全屏写作
+- 拖拽、粘贴、选择图片上传，图片自动写入 `public/images/YYYY/MM/`
+- 右键菜单之外的所有常用格式：标题、粗体、斜体、删除线、代码、引用、列表、任务列表、表格、分割线
 
-### 🏷️ Tags管理
-- 创建、编辑、删除标签
-- 标签描述和详细内容
-- 可视化标签管理
+### 文章
 
-### 📁 静态资源管理
-- 文件上传（拖拽支持）
-- 文件夹管理
-- 图片预览
-- 文件删除和组织
+- 草稿 / 发布状态切换，编辑已发布文章时自动更新 `updatedDate`
+- 发布日期、标签、置顶、摘要、封面图
+- 本地草稿自动保存：新文章不会在输入时立刻生成文件，只有点击保存/发布才写入 `src/content`
+- 文件路径重命名、复制路径、在本地博客中打开
+
+### 笔记 / 标签 / 资源
+
+- Notes 已恢复，支持同样的 Markdown 编辑器与发布日期
+- 标签页显示每个标签被多少篇文章使用，可直接筛选相关文章
+- 资源页提供图片缩略图、图片预览、复制 Markdown、上传、重命名、删除、文件夹管理
+- 文章内图片通过 CMS 的 `/media` 直接读取 `public`，预览不再依赖 Astro dev server
 
 ## 技术栈
 
-### 后端
-- Node.js + Express
-- 文件系统操作
-- Gray-matter (Frontmatter解析)
-- Multer (文件上传)
+- 后端：Node.js + Express + gray-matter + multer + sharp
+- 前端：React 18 + Vite + Tailwind CSS
+- 数据：直接操作 Blog 项目的 Markdown 文件
 
-### 前端
-- React 18
-- React Router
-- Tailwind CSS
-- Lucide React (图标)
-- React Hot Toast (通知)
-- React Dropzone (文件上传)
-- React Markdown (预览)
+## 快速开始
 
-## 安装和使用
+首次使用先安装依赖：
 
-### 0.优先使用
 ```bash
+cd cms
 npm run install:all
 ```
 
-### 1. 安装依赖
+从博客根目录启动：
 
 ```bash
-# 安装根目录依赖
-cd cms
-npm install
-
-# 安装前端依赖
-cd client
-如果不行,执行:
-npm install
+npm run cms
 ```
 
-### 2. 启动开发服务器
+或在 `cms` 目录启动：
 
 ```bash
-# 在cms目录下运行
 npm run dev
 ```
 
-这会同时启动：
-- 后端服务器 (端口 3001)
-- 前端开发服务器 (端口 5173)
+访问：
 
-### 3. 访问CMS
+- CMS 界面：http://localhost:5173
+- API：http://localhost:3001
 
-打开浏览器访问 `http://localhost:5173`
+### 单端口生产模式
+
+```bash
+npm run cms:start
+```
+
+该命令会构建前端并由 Express 直接提供页面，之后访问 http://localhost:3001 即可。
+
+### 端口
+
+- 前端固定使用 `5173`（Vite `strictPort`）
+- API 默认使用 `3001`，可通过 `CMS_PORT` 修改：`CMS_PORT=3002 npm start`
 
 ## 目录结构
 
 ```
 cms/
-├── server/                 # 后端代码
-│   ├── index.js           # 服务器入口
-│   ├── config.js          # 配置文件
-│   ├── routes/            # API路由
-│   │   ├── posts.js       # Posts API
-│   │   ├── notes.js       # Notes API
-│   │   ├── tags.js        # Tags API
-│   │   └── assets.js      # 静态资源API
-│   └── utils/             # 工具函数
-│       └── fileUtils.js   # 文件操作工具
-├── client/                # 前端代码
-│   ├── src/
-│   │   ├── components/    # React组件
-│   │   ├── pages/         # 页面组件
-│   │   ├── services/      # API服务
-│   │   └── ...
-│   └── ...
+├── server/                 # Express API
+│   ├── index.js            # 服务入口、/media 静态资源
+│   ├── config.js           # 路径、时区、frontmatter 模板
+│   ├── routes/             # posts / notes / tags / assets
+│   └── utils/              # 文件与图片处理
+├── client/                 # React 前端
+│   └── src/
+│       ├── components/     # 编辑器、预览、弹窗等
+│       ├── pages/          # 仪表板、文章、笔记、标签、资源
+│       ├── hooks/          # 自动保存
+│       └── utils/          # 日期、URL 工具
 └── package.json
 ```
 
-## API接口
-
-### Posts API
-- `GET /api/posts` - 获取所有posts
-- `GET /api/posts/:id` - 获取单个post
-- `POST /api/posts` - 创建post
-- `PUT /api/posts/:id` - 更新post
-- `DELETE /api/posts/:id` - 删除post
-
-### Notes API
-- `GET /api/notes` - 获取所有notes
-- `GET /api/notes/:id` - 获取单个note
-- `POST /api/notes` - 创建note
-- `PUT /api/notes/:id` - 更新note
-- `DELETE /api/notes/:id` - 删除note
-
-### Tags API
-- `GET /api/tags` - 获取所有tags
-- `GET /api/tags/:id` - 获取单个tag
-- `POST /api/tags` - 创建tag
-- `PUT /api/tags/:id` - 更新tag
-- `DELETE /api/tags/:id` - 删除tag
-
-### Assets API
-- `GET /api/assets` - 获取资源列表
-- `POST /api/assets/upload` - 上传文件
-- `POST /api/assets/folder` - 创建文件夹
-- `DELETE /api/assets/:path` - 删除文件/文件夹
-- `GET /api/assets/preview/:path` - 预览文件
-
 ## 文件组织
 
-### Posts
-- 路径：`src/content/post/YYYY/MM/DD/index.md`
-- 支持草稿功能
-- 自动处理updatedDate字段
+| 内容 | 路径 |
+| --- | --- |
+| 文章 | `src/content/post/YYYY/MM/DD/index.md`（同日多篇为 `1.md`、`2.md`） |
+| 笔记 | `src/content/note/YYYY/MM/DD/index.md` |
+| 标签 | `src/content/tag/标签名.md` |
+| 图片 / 文件 | `public/任意目录` |
 
-### Notes
-- 路径：`src/content/note/YYYY/MM-DD.md`
-- 简单的日期组织结构
+## Frontmatter
 
-### Tags
-- 路径：`src/content/tag/标签名.md`
-- 扁平化组织结构
+### 文章
 
-### 静态资源
-- 路径：`public/`
-- 支持任意目录结构
-- 支持各种文件类型
+```yaml
+---
+title: "文章标题"          # 最多 60 字符
+description: "文章摘要"
+publishDate: "2026-11-03 23:00:00"
+draft: false
+tags: ["记录", "周记"]
+pinned: false
+updatedDate: "2026-11-03 23:10:00"  # 编辑时自动维护
+coverImage:
+  src: 202511/cover.jpg               # 相对 public 的路径
+  alt: "封面描述"
+---
+```
 
-## 开发说明
+### 笔记
 
-### 添加新功能
-1. 在`server/routes/`中添加新的API路由
-2. 在`client/src/pages/`中添加新的页面组件
-3. 在`client/src/services/api.js`中添加API调用
-4. 更新路由配置
+```yaml
+---
+title: "笔记标题"
+description: ""
+publishDate: "2026-11-03T23:00:00+08:00"
+---
+```
 
-### 自定义配置
-编辑`server/config.js`文件来修改：
-- Blog项目路径
-- 内容目录路径
-- 默认frontmatter模板
+### 标签
 
-## 注意事项
+```yaml
+---
+title: "显示名称"
+description: "标签描述"
+---
+```
 
-1. 确保CMS目录与Blog项目目录的相对位置正确
-2. 编辑内容时会直接修改Blog项目的源文件
-3. 建议在使用前备份重要内容
-4. Posts的draft状态会影响Blog的显示
+## 快捷键
+
+| 快捷键 | 功能 |
+| --- | --- |
+| `⌘/Ctrl + S` | 保存 |
+| `⌘/Ctrl + B` | 粗体 |
+| `⌘/Ctrl + I` | 斜体 |
+| `⌘/Ctrl + K` | 链接 |
+| `Tab` | 插入两个空格 |
+
+## 预览说明
+
+- 编辑器内的 Markdown 预览由 CMS 自己渲染，图片走 `/media`，不需要启动 Astro。
+- “在博客中打开”会跳转到 `http://localhost:4321` 下对应文章，需要先运行博客的 `npm run dev`。
+- 仪表板左下角会显示博客开发服务器是否在线。
+
+## API
+
+- `GET /api/health` 健康检查
+- `GET /api/blog-status` 博客开发服务器状态
+- `GET/POST/PUT/DELETE /api/posts` 文章
+- `PUT /api/posts/:id/rename` 重命名文章路径
+- `GET/POST/PUT/DELETE /api/notes` 笔记
+- `PUT /api/notes/:id/rename` 重命名笔记路径
+- `GET/POST/PUT/DELETE /api/tags` 标签
+- `GET /api/assets` 资源树
+- `GET /api/assets/folder/*` 目录内容
+- `POST /api/assets/upload` 上传文件
+- `POST /api/assets/folder` 新建文件夹
+- `PUT /api/assets/rename` 重命名
+- `DELETE /api/assets/*` 删除
+- `GET /api/assets/preview/*` 预览文件
+- `GET /media/*` 直接访问 `public` 文件
 
 ## 故障排除
 
-### 常见问题
-
-1. **无法加载内容**
-   - 检查Blog项目路径配置
-   - 确保有读写权限
-
-2. **文件上传失败**
-   - 检查public目录权限
-   - 确认文件大小限制
-
-3. **预览不显示**
-   - 检查markdown语法
-   - 确认frontmatter格式
-
-## 贡献
-
-欢迎提交Issue和Pull Request来改进这个CMS系统。
+1. **页面打不开**：确认 `cms-api` 与 `cms-web` 都在运行，前端端口为 5173。
+2. **端口被占用**：API 可用 `CMS_PORT=其他端口 npm start`；前端请释放 5173。
+3. **图片预览失败**：确认 `public` 下文件存在，且 API 服务的 `/media` 可访问。
+4. **保存失败**：查看 API 终端日志；确认 `src/content` 有写权限。
+5. **博客打不开**：CMS 只负责内容，文章站点需要单独运行 `npm run dev`（4321）。

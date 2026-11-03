@@ -1,253 +1,247 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Plus, Edit, Trash2, Eye, Search, FileText } from 'lucide-react'
-import { notesAPI } from '../services/api'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowUpRight, Eye, Pencil, Plus, Search, StickyNote, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { format } from 'date-fns'
+import { notesAPI } from '../services/api'
+import PageHeader from '../components/PageHeader'
 import PreviewModal from '../components/PreviewModal'
-import RenameModal from '../components/RenameModal'
+import ConfirmDialog from '../components/ConfirmDialog'
+import { formatDate } from '../utils/date'
+import { getNotePreviewUrl } from '../utils/url'
+
+const PAGE_SIZE = 20
 
 const Notes = () => {
+  const navigate = useNavigate()
   const [notes, setNotes] = useState([])
-  const [filteredNotes, setFilteredNotes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [search, setSearch] = useState('')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [previewNote, setPreviewNote] = useState(null)
-  const [showPreviewModal, setShowPreviewModal] = useState(false)
-  const [renameNote, setRenameNote] = useState(null)
-  const [showRenameModal, setShowRenameModal] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    loadNotes()
+    let cancelled = false
+
+    notesAPI
+      .getAll()
+      .then((response) => {
+        if (!cancelled) setNotes(response.data)
+      })
+      .catch((error) => {
+        console.error('Error loading notes:', error)
+        toast.error('加载笔记失败')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
-    filterNotes()
-  }, [notes, searchTerm])
+    setVisibleCount(PAGE_SIZE)
+  }, [search])
 
-  const loadNotes = async () => {
-    try {
-      const response = await notesAPI.getAll()
-      setNotes(response.data)
-    } catch (error) {
-      console.error('Error loading notes:', error)
-      toast.error('加载Notes失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const filterNotes = () => {
-    let filtered = notes
-
-    // 按搜索词过滤
-    if (searchTerm) {
-      filtered = filtered.filter(note =>
-        note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (note.description && note.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredNotes = useMemo(() => {
+    const keyword = search.trim().toLowerCase()
+    const result = notes.filter((note) => {
+      if (!keyword) return true
+      return (
+        String(note.title || '').toLowerCase().includes(keyword) ||
+        String(note.description || '').toLowerCase().includes(keyword) ||
+        String(note.body || '').toLowerCase().includes(keyword)
       )
-    }
+    })
 
-    setFilteredNotes(filtered)
-  }
+    return result.sort(
+      (a, b) => new Date(b.publishDate || 0) - new Date(a.publishDate || 0)
+    )
+  }, [notes, search])
 
-  const handleDelete = async (note) => {
-    if (!window.confirm(`确定要删除 \"${note.title}\" 吗？`)) {
-      return
-    }
+  const visibleNotes = filteredNotes.slice(0, visibleCount)
 
+  const openPreview = async (note) => {
     try {
-      await notesAPI.delete(note.id)
-      toast.success('Note删除成功')
-      loadNotes()
-    } catch (error) {
-      console.error('Error deleting note:', error)
-      toast.error('删除Note失败')
-    }
-  }
-
-  const handlePreview = async (note) => {
-    try {
-      // 获取完整的note数据（包括body内容）
       const response = await notesAPI.getById(note.id)
       setPreviewNote(response.data)
-      setShowPreviewModal(true)
     } catch (error) {
       console.error('Error loading note for preview:', error)
-      toast.error('加载Note内容失败')
+      toast.error('加载笔记内容失败')
     }
   }
 
-  const handleRename = async (note) => {
-    setRenameNote(note);
-    setShowRenameModal(true);
-  };
-
-  const onRenameSubmit = async (newPath) => {
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
     try {
-      await notesAPI.rename(renameNote.id, { newPath });
-      toast.success('路径更新成功');
-      loadNotes(); // 重新加载notes列表
-      setShowRenameModal(false);
+      await notesAPI.delete(deleteTarget.id)
+      setNotes((previous) => previous.filter((note) => note.id !== deleteTarget.id))
+      toast.success('笔记已删除')
+      setDeleteTarget(null)
     } catch (error) {
-      console.error('Error renaming note:', error);
-      throw error;
+      console.error('Error deleting note:', error)
+      toast.error('删除失败')
+    } finally {
+      setDeleting(false)
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div>
+        <PageHeader title="笔记" description="快速记录想法与片段" />
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="card space-y-2 p-4">
+              <div className="skeleton h-4 w-1/3" />
+              <div className="skeleton h-3 w-2/3" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
     <div>
-      <div className="sm:flex sm:items-center sm:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notes管理</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            管理你的笔记和想法
+      <PageHeader title="笔记" description={`${notes.length} 条记录`}>
+        <Link to="/notes/new" className="btn btn-primary btn-md">
+          <Plus className="h-4 w-4" />
+          新建笔记
+        </Link>
+      </PageHeader>
+
+      <div className="mb-4 relative max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="搜索笔记标题、摘要或内容"
+          className="input pl-9"
+        />
+      </div>
+
+      {visibleNotes.length > 0 ? (
+        <div className="card divide-y divide-slate-100 overflow-hidden">
+          {visibleNotes.map((note) => (
+            <article
+              key={note.id}
+              className="group flex items-start gap-4 px-4 py-4 transition-colors hover:bg-slate-50/70 sm:px-5"
+            >
+              <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-600">
+                <StickyNote className="h-4 w-4" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link
+                      to={`/notes/edit?id=${encodeURIComponent(note.id)}`}
+                      className="clamp-1 text-[15px] font-medium text-slate-900 hover:text-brand-700"
+                    >
+                      {note.title || '未命名笔记'}
+                    </Link>
+                    {note.description && (
+                      <p className="clamp-1 mt-1 text-sm text-slate-500">{note.description}</p>
+                    )}
+                    <p className="mt-1.5 text-xs text-slate-400">
+                      {formatDate(note.publishDate, 'yyyy-MM-dd HH:mm')}
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      title="预览"
+                      onClick={() => openPreview(note)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icon hidden sm:inline-flex"
+                      title="在博客中打开"
+                      onClick={() => window.open(getNotePreviewUrl(note.id), '_blank', 'noopener')}
+                    >
+                      <ArrowUpRight className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      title="编辑"
+                      onClick={() => navigate(`/notes/edit?id=${encodeURIComponent(note.id)}`)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-icon hover:bg-red-50 hover:text-red-600"
+                      title="删除"
+                      onClick={() => setDeleteTarget(note)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="card flex flex-col items-center justify-center px-6 py-16 text-center">
+          <div className="grid h-14 w-14 place-items-center rounded-full bg-slate-100">
+            <StickyNote className="h-7 w-7 text-slate-400" />
+          </div>
+          <h3 className="mt-3 text-sm font-semibold text-slate-700">
+            {search ? '没有匹配的笔记' : '还没有笔记'}
+          </h3>
+          <p className="mt-1 text-sm text-slate-400">
+            {search ? '换个关键词试试' : '随手记录一条想法'}
           </p>
+          {!search && (
+            <Link to="/notes/new" className="btn btn-primary btn-md mt-5">
+              <Plus className="h-4 w-4" />
+              新建笔记
+            </Link>
+          )}
         </div>
-        <div className="mt-4 sm:mt-0">
-          <Link
-            to="/notes/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+      )}
+
+      {visibleCount < filteredNotes.length && (
+        <div className="mt-5 flex justify-center">
+          <button
+            type="button"
+            className="btn btn-secondary btn-md"
+            onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
           >
-            <Plus className="h-4 w-4 mr-2" />
-            新建Note
-          </Link>
+            加载更多
+            <span className="text-xs text-slate-400">
+              {visibleCount} / {filteredNotes.length}
+            </span>
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* 搜索 */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <input
-            type="text"
-            placeholder="搜索Notes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 w-full max-w-md border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-          />
-        </div>
-      </div>
-
-      {/* Notes列表 */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        {filteredNotes.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    标题
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    路径/文件名
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    发布日期
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    修改日期
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredNotes.map((note) => (
-                  <tr key={note.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {note.title}
-                        </div>
-                        {note.description && (
-                          <div className="text-sm text-gray-500 truncate max-w-xs">
-                            {note.description}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-mono">
-                        {note.id}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(note.publishDate), 'yyyy-MM-dd HH:mm')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(note.modifiedAt), 'yyyy-MM-dd HH:mm')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => handlePreview(note)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="预览Note"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRename(note)}
-                          className="text-purple-600 hover:text-purple-900"
-                          title="重命名文件"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </button>
-                        <Link
-                          to={`/notes/edit/${note.id}`}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(note)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="px-6 py-8 text-center">
-            <p className="text-gray-500">
-              {searchTerm ? '没有找到匹配的Notes' : '暂无Notes'}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* 预览模态框 */}
       <PreviewModal
-        isOpen={showPreviewModal}
-        onClose={() => setShowPreviewModal(false)}
-        title={previewNote?.title || ''}
-        content={previewNote?.body || ''}
+        isOpen={Boolean(previewNote)}
+        onClose={() => setPreviewNote(null)}
         type="note"
+        data={previewNote}
       />
-      
-      {/* 重命名模态框 */}
-      <RenameModal
-        isOpen={showRenameModal}
-        onClose={() => setShowRenameModal(false)}
-        onRename={onRenameSubmit}
-        currentPath={renameNote?.id}
-        title={renameNote?.title}
-        type="note"
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="删除笔记？"
+        message={`「${deleteTarget?.title || ''}」将从 src/content/note 中删除，此操作无法撤销。`}
+        confirmLabel="删除"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   )
